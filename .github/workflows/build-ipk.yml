@@ -25,7 +25,7 @@ jobs:
 
       - name: Instalace LG webOS TV CLI (ares-cli)
         run: |
-          npm install -g @webosbrew/ares-cli
+          npm install -g @webos-tools/cli
 
       - name: Sestavení webové distribuce
         run: |
