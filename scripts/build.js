@@ -31,7 +31,7 @@ fs.copyFileSync(path.join(WEBOS_DIR, 'appinfo.json'), path.join(DIST_DIR, 'appin
 });
 
 // Copy core files from /src
-['index.html', 'app.js', 'style.css'].forEach(file => {
+['index.html', 'app.js', 'lang.js', 'style.css'].forEach(file => {
   const p = path.join(SRC_DIR, file);
   if (fs.existsSync(p)) {
     fs.copyFileSync(p, path.join(DIST_DIR, file));

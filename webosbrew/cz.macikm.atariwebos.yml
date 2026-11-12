@@ -7,3 +7,4 @@ description: |
   Standalone open-source Atari 800 / 800XL / 130XE emulator for LG webOS TV.
   Features 60 FPS Canvas emulation, full Atari BASIC (Rev C), POKEY audio,
   local disk storage (IndexedDB), and remote WiFi file uploading from mobile/PC.
+

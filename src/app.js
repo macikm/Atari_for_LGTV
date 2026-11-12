@@ -4,6 +4,8 @@
  * License: GPL-2.0-or-later
  */
 
+import { t, getLanguage, applyTranslations } from './lang.js';
+
 // ============================================================================
 // 1. IndexedDB Game Storage Manager
 // ============================================================================
@@ -514,7 +516,7 @@ class AtariApp {
     const arrayBuffer = await file.arrayBuffer();
     const id = await this.storage.saveMedia(file.name, arrayBuffer, file.size);
     await this.refreshGameList();
-    this.flashNotice(`Uloženo do paměti TV: ${file.name}`);
+    this.flashNotice(t('notice_saved') + file.name);
     return id;
   }
 
@@ -523,7 +525,11 @@ class AtariApp {
   // ==========================================================================
   async refreshGameList() {
     const list = await this.storage.getAllMedia();
-    this.libraryCountBadge.textContent = `${list.length} ${list.length === 1 ? 'soubor' : 'souborů'}`;
+    const count = list.length;
+    let countWord = t('files_count_many');
+    if (count === 1) countWord = t('files_count_one');
+    else if (count >= 2 && count <= 4) countWord = t('files_count_few');
+    this.libraryCountBadge.textContent = `${count} ${countWord}`;
 
     if (list.length === 0) {
       this.emptyStateMsg.style.display = 'block';
@@ -540,7 +546,7 @@ class AtariApp {
       el.className = 'game-item';
       
       const sizeKb = (item.size / 1024).toFixed(1);
-      const dateStr = new Date(item.date).toLocaleDateString();
+      const dateStr = new Date(item.date).toLocaleDateString(getLanguage());
 
       el.innerHTML = `
         <div class="game-info">
@@ -551,8 +557,8 @@ class AtariApp {
           </div>
         </div>
         <div class="game-actions">
-          <button class="btn btn-primary btn-sm btn-run" data-id="${item.id}" title="Spustit v Atari">▶ Spustit</button>
-          <button class="btn btn-danger btn-sm btn-del" data-id="${item.id}" title="Smazat">🗑</button>
+          <button class="btn btn-primary btn-sm btn-run" data-id="${item.id}" title="${t('action_run')}">${t('action_run')}</button>
+          <button class="btn btn-danger btn-sm btn-del" data-id="${item.id}" title="${t('action_delete')}">🗑</button>
         </div>
       `;
 
@@ -561,7 +567,7 @@ class AtariApp {
       });
 
       el.querySelector('.btn-del').addEventListener('click', async () => {
-        if (confirm(`Opravdu chcete smazat "${item.name}"?`)) {
+        if (confirm(t('delete_confirm', { name: item.name }))) {
           await this.storage.deleteMedia(item.id);
           await this.refreshGameList();
         }
@@ -638,12 +644,20 @@ class AtariApp {
       });
     });
 
+    // Keyboard Input Profile Toggle (BASIC Mode vs WASD Game Mode)
+    if (this.btnToggleInputMode) {
+      this.btnToggleInputMode.addEventListener('click', () => {
+        this.wasdJoystickEnabled = !this.wasdJoystickEnabled;
+        this.updateInputModeButton();
+      });
+    }
+
     // Clear All Data
     document.getElementById('btnClearAllData').addEventListener('click', async () => {
-      if (confirm('Opravdu chcete vymazat VŠECHNY hry z paměti televize?')) {
+      if (confirm(t('clear_all_confirm'))) {
         await this.storage.clearAll();
         await this.refreshGameList();
-        this.flashNotice('Paměť TV byla vymazána');
+        this.flashNotice(t('notice_cleared'));
       }
     });
   }
@@ -683,6 +697,28 @@ class AtariApp {
       this.companionModal.classList.remove('open');
       document.getElementById('fileUploadInput').click();
     });
+  }
+
+  updateInputModeButton() {
+    if (!this.btnToggleInputMode) return;
+    if (this.wasdJoystickEnabled) {
+      this.btnToggleInputMode.innerHTML = `<span>🕹️</span> <span>${t('mode_wasd')}</span>`;
+      this.btnToggleInputMode.classList.add('btn-primary');
+      this.flashNotice(t('notice_wasd'));
+    } else {
+      this.btnToggleInputMode.innerHTML = `<span>⌨️</span> <span>${t('mode_basic')}</span>`;
+      this.btnToggleInputMode.classList.remove('btn-primary');
+      this.flashNotice(t('notice_basic'));
+    }
+  }
+
+  onLanguageChange() {
+    this.refreshGameList();
+    if (this.btnToggleInputMode) {
+      const modeKey = this.wasdJoystickEnabled ? 'mode_wasd' : 'mode_basic';
+      const icon = this.wasdJoystickEnabled ? '🕹️' : '⌨️';
+      this.btnToggleInputMode.innerHTML = `<span>${icon}</span> <span>${t(modeKey)}</span>`;
+    }
   }
 
   flashNotice(text) {

@@ -7,6 +7,7 @@
   <title>AtariWebOS - Atari 800/XE Emulator</title>
   <link rel="stylesheet" href="style.css">
   <link rel="icon" type="image/png" href="../webos/icon.png">
+  <script type="module" src="lang.js"></script>
 </head>
 <body>
   <div class="app-container">
@@ -45,26 +46,42 @@
 
       <!-- Global Top Controls -->
       <div class="top-controls">
-        <a href="https://buymeacoffee.com/martinmacko" target="_blank" rel="noopener noreferrer" id="btnBuyPizza" class="btn btn-pizza" title="Podpořit vývojáře - Koupit pizzu">
-          <span>🍕</span> Koupit pizzu
+        <!-- Language Selector Dropdown -->
+        <div class="lang-dropdown" id="langDropdown" tabindex="0" onclick="this.classList.toggle('open')">
+          <div class="lang-selected">
+            <img src="https://flagcdn.com/w40/cz.png" alt="CS" class="flag-img">
+            <span>CS</span>
+          </div>
+          <div class="lang-opts">
+            <div class="lang-opt" onclick="setLanguage('cs')"><img src="https://flagcdn.com/w40/cz.png" class="flag-img"> Čeština</div>
+            <div class="lang-opt" onclick="setLanguage('sk')"><img src="https://flagcdn.com/w40/sk.png" class="flag-img"> Slovenčina</div>
+            <div class="lang-opt" onclick="setLanguage('en')"><img src="https://flagcdn.com/w40/gb.png" class="flag-img"> English</div>
+            <div class="lang-opt" onclick="setLanguage('de')"><img src="https://flagcdn.com/w40/de.png" class="flag-img"> Deutsch</div>
+            <div class="lang-opt" onclick="setLanguage('es')"><img src="https://flagcdn.com/w40/es.png" class="flag-img"> Español</div>
+            <div class="lang-opt" onclick="setLanguage('it')"><img src="https://flagcdn.com/w40/it.png" class="flag-img"> Italiano</div>
+          </div>
+        </div>
+
+        <a href="https://buymeacoffee.com/martinmacko" target="_blank" rel="noopener noreferrer" id="btnBuyPizza" class="btn btn-pizza" data-i18n-title="buy_pizza_title" title="Podpořit vývojáře - Koupit pizzu">
+          <span>🍕</span> <span data-i18n="buy_pizza">Koupit pizzu</span>
         </a>
-        <button id="btnToggleInputMode" class="btn" title="Přepnout režim vstupu: Plná klávesnice pro BASIC vs. Herní WASD">
-          <span>⌨️</span> Mód: BASIC
+        <button id="btnToggleInputMode" class="btn" data-i18n-title="mode_title" title="Přepnout režim vstupu: Plná klávesnice pro BASIC vs. Herní WASD">
+          <span>⌨️</span> <span data-i18n="mode_basic">Mód: BASIC</span>
         </button>
-        <button id="btnCompanionModal" class="btn" title="Nahrávání her z mobilu/PC přes QR kód">
-          <span>📱</span> Nahrát z mobilu
+        <button id="btnCompanionModal" class="btn" data-i18n-title="upload_mobile_title" title="Nahrávání her z mobilu/PC přes QR kód">
+          <span>📱</span> <span data-i18n="upload_mobile">Nahrát z mobilu</span>
         </button>
-        <button id="btnToggleAudio" class="btn" title="Zapnout/Vypnout zvuk">
+        <button id="btnToggleAudio" class="btn" data-i18n-title="toggle_audio_title" title="Zapnout/Vypnout zvuk">
           <span id="audioIcon">🔊</span>
         </button>
-        <button id="btnToggleScanlines" class="btn" title="CRT Scanlines filtr">
-          <span>📺</span> CRT
+        <button id="btnToggleScanlines" class="btn" data-i18n-title="crt_filter_title" title="CRT Scanlines filtr">
+          <span>📺</span> <span data-i18n="crt_filter">CRT</span>
         </button>
-        <button id="btnToggleFullscreen" class="btn" title="Celá obrazovka">
-          <span>⛶</span> Fullscreen
+        <button id="btnToggleFullscreen" class="btn" data-i18n-title="fullscreen_title" title="Celá obrazovka">
+          <span>⛶</span> <span data-i18n="fullscreen">Fullscreen</span>
         </button>
-        <button id="btnToggleSidebar" class="btn btn-primary" title="Otevřít / zavřít postranní panel">
-          <span id="sidebarToggleIcon">☰</span> Knihovna & Ovládání
+        <button id="btnToggleSidebar" class="btn btn-primary" data-i18n-title="library_controls_title" title="Otevřít / zavřít postranní panel">
+          <span id="sidebarToggleIcon">☰</span> <span data-i18n="library_controls">Knihovna & Ovládání</span>
         </button>
       </div>
     </header>
@@ -78,17 +95,17 @@
           <div class="crt-overlay" id="crtOverlay"></div>
         </div>
 
-        <div id="viewportMessage" class="viewport-message">
+        <div id="viewportMessage" class="viewport-message" data-i18n="dropzone_desc">
           Přetáhněte sem soubor (.atr, .xex, .rom, .car, .cas)
         </div>
 
         <!-- Quick Function Buttons (Start, Select, Option, Reset) -->
         <nav class="quick-control-bar" aria-label="Console Keys">
-          <button id="btnConsoleOption" class="atari-key-btn" title="Klávesa OPTION (F2)">OPTION (F2)</button>
-          <button id="btnConsoleSelect" class="atari-key-btn" title="Klávesa SELECT (F3)">SELECT (F3)</button>
-          <button id="btnConsoleStart" class="atari-key-btn" title="Klávesa START (F4)">START (F4)</button>
-          <button id="btnConsoleReset" class="atari-key-btn" title="RESET (F5)">RESET (F5)</button>
-          <button id="btnColdReset" class="atari-key-btn" title="Studený restart / Nový BASIC">COLD RESTART</button>
+          <button id="btnConsoleOption" class="atari-key-btn" data-i18n-title="btn_option_title" data-i18n="btn_option" title="Klávesa OPTION (F2)">OPTION (F2)</button>
+          <button id="btnConsoleSelect" class="atari-key-btn" data-i18n-title="btn_select_title" data-i18n="btn_select" title="Klávesa SELECT (F3)">SELECT (F3)</button>
+          <button id="btnConsoleStart" class="atari-key-btn" data-i18n-title="btn_start_title" data-i18n="btn_start" title="Klávesa START (F4)">START (F4)</button>
+          <button id="btnConsoleReset" class="atari-key-btn" data-i18n-title="btn_reset_title" data-i18n="btn_reset" title="RESET (F5)">RESET (F5)</button>
+          <button id="btnColdReset" class="atari-key-btn" data-i18n-title="btn_cold_reset_title" data-i18n="btn_cold_reset" title="Studený restart / Nový BASIC">COLD RESTART</button>
         </nav>
       </section>
 
@@ -96,34 +113,34 @@
       <aside class="sidebar-panel" id="sidebarPanel">
         <div class="panel-tabs">
           <button class="tab-btn active" data-tab="tabLibrary">
-            <span>💾</span> Knihovna her
+            <span>💾</span> <span data-i18n="tab_library">Knihovna her</span>
           </button>
           <button class="tab-btn" data-tab="tabControls">
-            <span>🎮</span> Ovládání
+            <span>🎮</span> <span data-i18n="tab_controls">Ovládání</span>
           </button>
           <button class="tab-btn" data-tab="tabSettings">
-            <span>⚙️</span> Nastavení
+            <span>⚙️</span> <span data-i18n="tab_settings">Nastavení</span>
           </button>
         </div>
 
         <!-- Tab 1: Library & Local Files (IndexedDB) -->
         <section id="tabLibrary" class="tab-content active">
           <div class="library-header">
-            <h3>Uložené hry & disky</h3>
-            <span id="libraryCountBadge" class="game-badge">0 souborů</span>
+            <h3 data-i18n="library_title">Uložené hry & disky</h3>
+            <span id="libraryCountBadge" class="game-badge">0</span>
           </div>
 
           <!-- Dropzone & Local Upload -->
           <div class="dropzone-box" id="dropzoneBox">
             <input type="file" id="fileUploadInput" multiple accept=".atr,.xex,.car,.rom,.cas,.bin" style="display:none">
             <div class="dropzone-icon">📥</div>
-            <div class="dropzone-title">Nahrát hry a disky</div>
-            <div class="dropzone-desc">Klikněte nebo přetáhněte soubory .ATR, .XEX, .CAR, .ROM sem</div>
+            <div class="dropzone-title" data-i18n="dropzone_title">Nahrát hry a disky</div>
+            <div class="dropzone-desc" data-i18n="dropzone_desc">Klikněte nebo přetáhněte soubory .ATR, .XEX, .CAR, .ROM sem</div>
           </div>
 
           <!-- Search Filter -->
           <div class="search-box">
-            <input type="text" id="librarySearchInput" class="input-text" placeholder="Hledat v knihovně...">
+            <input type="text" id="librarySearchInput" class="input-text" data-i18n="search_placeholder" placeholder="Hledat v knihovně...">
           </div>
 
           <!-- Game List Container -->
@@ -131,7 +148,7 @@
             <!-- Dynamically populated from IndexedDB -->
             <div class="empty-state" id="emptyStateMsg">
               <span>🕹️</span>
-              <p>Zatím nemáte uloženy žádné hry v paměti TV.<br>Nahrajte diskety nebo spusťte Atari BASIC.</p>
+              <p data-i18n="empty_library">Zatím nemáte uloženy žádné hry v paměti TV.<br>Nahrajte diskety nebo spusťte Atari BASIC.</p>
             </div>
           </div>
         </section>
@@ -139,60 +156,60 @@
         <!-- Tab 2: Keyboard & Joystick Controls Guide -->
         <section id="tabControls" class="tab-content">
           <div class="help-section">
-            <h3 class="help-title">Herní ovládání (Joystick 1)</h3>
+            <h3 class="help-title" data-i18n="controls_joy_title">Herní ovládání (Joystick 1)</h3>
             <table class="key-table">
               <tr>
-                <td>Pohyb (nahoru, dolů, vlevo, vpravo)</td>
-                <td><span class="key-badge">Šipky</span> nebo <span class="key-badge">Num 8, 2, 4, 6</span></td>
+                <td data-i18n="controls_movement">Pohyb (nahoru, dolů, vlevo, vpravo)</td>
+                <td><span class="key-badge" data-i18n="controls_arrows">Šipky nebo Num 8, 2, 4, 6</span></td>
               </tr>
               <tr>
-                <td>Tlačítko FIRE (střelba / akce)</td>
-                <td><span class="key-badge">Pravý Ctrl</span> nebo <span class="key-badge">Num 0</span></td>
+                <td data-i18n="controls_fire">Tlačítko FIRE (střelba / akce)</td>
+                <td><span class="key-badge" data-i18n="controls_fire_key">Pravý Ctrl nebo Num 0</span></td>
               </tr>
               <tr>
-                <td>Alternativa pro akční hry</td>
-                <td>Tlačítkem <strong>Mód: BASIC / WASD</strong> v horní liště lze povolit i klávesy <span class="key-badge">W, S, A, D</span></td>
+                <td>WASD</td>
+                <td data-i18n="controls_wasd_desc">Tlačítkem <strong>Mód: BASIC / WASD</strong> v horní liště lze povolit i klávesy <span class="key-badge">W, S, A, D</span></td>
               </tr>
             </table>
           </div>
 
           <div class="help-section">
-            <h3 class="help-title">Systémové klávesy Atari</h3>
+            <h3 class="help-title" data-i18n="controls_system_title">Systémové klávesy Atari</h3>
             <table class="key-table">
               <tr>
-                <td>START klávesa</td>
+                <td data-i18n="key_start">START klávesa</td>
                 <td><span class="key-badge">F4</span></td>
               </tr>
               <tr>
-                <td>SELECT klávesa</td>
+                <td data-i18n="key_select">SELECT klávesa</td>
                 <td><span class="key-badge">F3</span></td>
               </tr>
               <tr>
-                <td>OPTION klávesa</td>
-                <td><span class="key-badge">F2</span> (při bootu vypíná BASIC)</td>
+                <td data-i18n="key_option">OPTION klávesa (při bootu vypíná BASIC)</td>
+                <td><span class="key-badge">F2</span></td>
               </tr>
               <tr>
-                <td>RESET (Warmstart)</td>
+                <td data-i18n="key_reset">RESET (Warmstart)</td>
                 <td><span class="key-badge">F5</span></td>
               </tr>
               <tr>
-                <td>COLD RESET (studený restart)</td>
+                <td data-i18n="key_cold_reset">COLD RESET (studený restart)</td>
                 <td><span class="key-badge">Shift</span> + <span class="key-badge">F5</span></td>
               </tr>
               <tr>
-                <td>EMULATOR MENU / Nastavení</td>
+                <td data-i18n="key_menu">EMULATOR MENU / Nastavení</td>
                 <td><span class="key-badge">F1</span></td>
               </tr>
               <tr>
-                <td>HELP klávesa (XL/XE)</td>
+                <td data-i18n="key_help">HELP klávesa (XL/XE)</td>
                 <td><span class="key-badge">F6</span></td>
               </tr>
             </table>
           </div>
 
           <div class="help-section">
-            <h3 class="help-title">Práce s Atari BASICem</h3>
-            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 10px;">
+            <h3 class="help-title" data-i18n="basic_guide_title">Práce s Atari BASICem</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 10px;" data-i18n="basic_guide_desc">
               Fyzická klávesnice funguje přímo jako originální klávesnice počítačů Atari 800XL/130XE. Můžete psát přímo příkazy BASICu:
             </p>
             <div style="background:#090c14; padding:10px; border-radius:6px; font-family:var(--font-retro); font-size:0.85rem; color:#95b4fc;">
@@ -207,10 +224,10 @@
         <!-- Tab 3: Emulation Settings -->
         <section id="tabSettings" class="tab-content">
           <div class="help-section">
-            <h3 class="help-title">Nastavení emulátoru</h3>
+            <h3 class="help-title" data-i18n="settings_title">Nastavení emulátoru</h3>
             
             <div style="margin-bottom:14px;">
-              <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Model počítače:</label>
+              <label style="display:block; font-size:0.85rem; margin-bottom:6px;" data-i18n="setting_machine">Model počítače:</label>
               <select id="machineSelect" class="input-text">
                 <option value="800xl" selected>Atari 800XL (64 KB RAM)</option>
                 <option value="130xe">Atari 130XE (128 KB RAM)</option>
@@ -219,7 +236,7 @@
             </div>
 
             <div style="margin-bottom:14px;">
-              <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Televizní norma:</label>
+              <label style="display:block; font-size:0.85rem; margin-bottom:6px;" data-i18n="setting_tv_system">Televizní norma:</label>
               <select id="tvSystemSelect" class="input-text">
                 <option value="pal" selected>PAL (50 Hz / Evropa)</option>
                 <option value="ntsc">NTSC (60 Hz / USA)</option>
@@ -227,23 +244,23 @@
             </div>
 
             <div style="margin-bottom:14px;">
-              <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Zvuková vzorkovací frekvence:</label>
+              <label style="display:block; font-size:0.85rem; margin-bottom:6px;" data-i18n="setting_sample_rate">Zvuková vzorkovací frekvence:</label>
               <select id="sampleRateSelect" class="input-text">
-                <option value="44100" selected>44.1 kHz (Doporučeno)</option>
+                <option value="44100" selected>44.1 kHz</option>
                 <option value="48000">48.0 kHz</option>
               </select>
             </div>
 
             <div style="margin-top:24px; padding:16px; background:#181f30; border-radius:8px; border:1px solid var(--border-color); text-align:center;">
-              <h4 style="margin-bottom:8px; color:#ffffff;">Baví vás AtariWebOS?</h4>
-              <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:12px;">Podpořte další vývoj emulátoru a novinky koupí virtuální pizzy!</p>
-              <a href="https://buymeacoffee.com/martinmacko" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="display:inline-flex; width:100%; text-decoration:none;">
-                <span>🍕</span> Koupit autorovi pizzu
+              <h4 style="margin-bottom:8px; color:#ffffff;" data-i18n="support_title">Baví vás AtariWebOS?</h4>
+              <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:12px;" data-i18n="support_desc">Podpořte další vývoj emulátoru a novinky koupí virtuální pizzy!</p>
+              <a href="https://buymeacoffee.com/martinmacko" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="display:inline-flex; width:100%; text-decoration:none;" data-i18n="buy_pizza_btn">
+                🍕 Koupit autorovi pizzu
               </a>
             </div>
 
             <div style="margin-top:20px;">
-              <button id="btnClearAllData" class="btn btn-danger" style="width:100%;">
+              <button id="btnClearAllData" class="btn btn-danger" style="width:100%;" data-i18n="clear_all_data">
                 Smazat všechna data z paměti TV
               </button>
             </div>
@@ -256,17 +273,17 @@
     <div class="modal-overlay" id="companionModal">
       <div class="modal-card">
         <div class="modal-header">
-          <h2 class="modal-title">Nahrát hry z mobilu či PC</h2>
-          <button id="btnCloseModal" class="btn btn-sm">✕ Zavřít</button>
+          <h2 class="modal-title" data-i18n="modal_upload_title">Nahrát hry z mobilu či PC</h2>
+          <button id="btnCloseModal" class="btn btn-sm" data-i18n="modal_close">✕ Zavřít</button>
         </div>
         <div class="qr-box" id="qrContainer">
           <!-- Live QR code will be generated here -->
         </div>
         <div class="modal-url" id="companionUrlDisplay">http://localhost:8080/upload</div>
-        <p class="modal-desc">
+        <p class="modal-desc" data-i18n="modal_upload_desc">
           Naskenujte QR kód fotoaparátem mobilního telefonu nebo zadejte adresu výše do prohlížeče v počítači na stejné Wi-Fi síti pro okamžité odeslání disket a her do televizoru.
         </p>
-        <button id="btnModalUploadLocal" class="btn btn-primary" style="width: 100%;">
+        <button id="btnModalUploadLocal" class="btn btn-primary" style="width: 100%;" data-i18n="modal_upload_local">
           Vybrat soubory z tohoto zařízení
         </button>
       </div>
@@ -277,4 +294,3 @@
   <script type="module" src="app.js"></script>
 </body>
 </html>
-
