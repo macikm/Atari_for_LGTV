@@ -4,103 +4,108 @@
 [![Platform: LG webOS](https://img.shields.io/badge/Platform-LG%20webOS%203.0+-red.svg)](https://webostv.developer.lge.com/)
 [![WebAssembly & Canvas](https://img.shields.io/badge/Tech-WebAssembly%20%7C%20Canvas%2060FPS-orange.svg)](https://developer.mozilla.org/)
 
-**AtariWebOS** je open-source standalone webová aplikace a emulátor legendárních 8bitových počítačů **Atari 800 / 800XL / 130XE**, navržená speciálně pro chytré televize **LG Smart TV (webOS)** i pro moderní desktopové prohlížeče.
+**AtariWebOS** je open-source standalone webová aplikace a emulátor legendárních 8bitových počítačů **Atari 800 / 800XL / 130XE**, navržená speciálně pro chytré televize **LG Smart TV (webOS)** i pro moderní webové prohlížeče.
+
+Běží na plnohodnotném WebAssembly jádře s reálnou emulací procesoru MOS 6502 a čipů ANTIC/GTIA/POKEY, díky čemuž nabízí autentický běh her i originálního Atari BASICu.
 
 ---
 
 ## ✨ Klíčové vlastnosti
 
-- **60 FPS Canvas emulace:** Nativní poměr stran 4:3, autentické rozlišení Atari a volitelný retro filtr **CRT Scanlines**.
-- **Plná podpora Atari BASICu:** Plně funkční interaktivní příkazová řádka Atari BASICu (Revision C) s autentickým ATASCII 8×8 fontem a 256barvovou GTIA paletou.
-- **Web Audio POKEY Engine:** Autentické zvukové efekty (cvakání kláves, krokování disketové mechaniky Atari 1050 / XF551, POKEY tóny).
-- **Trvalé úložiště her v paměti TV (IndexedDB):** Ukládání a správa disket a her přímo v televizi bez nutnosti opakovaného stahování.
-- **Podpora formátů:** `.ATR` (disketové obrazy včetně čtení ATR hlavičky), `.XEX` (spustitelné binární soubory), `.CAR` / `.ROM` (cartridge moduly), `.CAS` (kazety).
+- **Plnohodnotné WebAssembly jádro:** Žádná zjednodušená náhražka – skutečný kód emulátoru provádí instrukce 6502, grafiku ANTIC/GTIA a zvuk POKEY.
+- **Plná podpora Atari BASICu:** Plně funkční originální Atari BASIC (Revision C). Fungují veškeré cykly `FOR/NEXT`, proměnné, grafické příkazy (`GR.0`, `GRAPHICS 8`, `COLOR`, `PLOT`, `DRAWTO`), tóny `SOUND`, `POKE`, `PEEK` i ukládání.
+- **60 FPS Canvas zobrazení:** Autentický poměr stran 4:3 a volitelný retro filtr **CRT Scanlines**.
+- **Trvalé úložiště her v paměti TV (IndexedDB):** Ukládání a správa disket a her přímo v paměti televize bez nutnosti opakovaného stahování.
+- **Podpora formátů:** `.ATR` (disketové obrazy), `.XEX` (spustitelné binární soubory), `.CAR` / `.ROM` (cartridge moduly), `.CAS` (kazety).
 - **Companion Web UI (QR kód):** Okamžité bezdrátové nahrávání her z mobilního telefonu nebo PC po domácí Wi-Fi síti přímo do televize.
-- **Ovládání fyzickou klávesnicí & ovladačem:** 
-  - Klávesy **F1** (START), **F2** (SELECT), **F3** (OPTION), **F4** (RESET), **Shift+F4** (Cold Restart).
-  - Herní joystick: **šipky** / **W, S, A, D** + **mezerník** / **Pravý Ctrl** (FIRE).
-  - Alfanumerická klávesnice pro psaní programů v BASICu.
+- **Chytré mapování klávesnice & podpora ovladače:**
+  - Ochrana proti nechtěné navigaci Zpět v prohlížeči (klávesa Backspace funguje jako pravý Atari `DELETE BACK S`).
+  - Konzolové klávesy Atari: **F2** (OPTION), **F3** (SELECT), **F4** (START), **F5** (RESET).
   - Podpora kurzoru a dálkového ovladače LG Magic Remote.
 
 ---
 
-## 📁 Struktura projektu
+## ⌨️ Ovládání a mapování klávesnice
 
-```text
-Atari_for_LGTV/
-├── package.json              # Konfigurace projektu, skripty a metadata
-├── webos/
-│   ├── appinfo.json          # Manifest LG webOS aplikace
-│   ├── icon.png              # Ikona aplikace (80x80)
-│   └── largeIcon.png         # Velká ikona aplikace (130x130)
-├── src/
-│   ├── index.html            # Hlavní rozhraní aplikace
-│   ├── app.js                # Hlavní logika emulátoru, IndexedDB, klávesnice, POKEY
-│   └── style.css             # Retro dark-mode 10-foot TV stylopis
-├── scripts/
-│   ├── server.js             # Dev server & Mobile Companion file uploader
-│   ├── build.js              # Sestavení dist složky pro webOS balíček
-│   └── create_icons.ps1      # Generátor ikon
-└── dist/                     # Vygenerovaná složka připravená pro ares-package
-```
+V aplikaci je k dispozici přepínač profilu klávesnice v horní liště:
 
----
+### 1. Režim BASIC (výchozí) – Plná klávesnice
+Aby bylo možné v Atari BASICu pohodlně psát veškeré příkazy a programy, jsou všechna písmena (včetně **W**, **S**, **A**, **D**) vyhrazena pro psaní textu (např. příkazy `NEW`, `SAVE`, `DRAWTO`, `CLS`):
+- **Psaní textu a čísel:** Standardní alfanumerické klávesy.
+- **Smazání znaku:** <kbd>Backspace</kbd> (odpovídá originální klávese Atari `DELETE / BACK S`).
+- **Pohyb joysticku 1:** <kbd>Šipky</kbd> nebo numerický blok (<kbd>Num 8</kbd>, <kbd>2</kbd>, <kbd>4</kbd>, <kbd>6</kbd>).
+- **Tlačítko FIRE (střelba / akce):** <kbd>Pravý Ctrl</kbd> nebo <kbd>Num 0</kbd>.
 
-## 🚀 Rychlý start (Vývoj v prohlížeči / IDE)
+### 2. Herní režim (WASD Game Mode)
+Pokud hrajete čistě akční arkádu a chcete ovládat pohyb levou rukou na klávesách WASD:
+- Přepněte v horní liště tlačítko na **`🕹️ Mód: Herní WASD`**.
+- Pohyb: <kbd>W</kbd>, <kbd>S</kbd>, <kbd>A</kbd>, <kbd>D</kbd> + <kbd>Pravý Ctrl</kbd> / <kbd>Num 0</kbd> pro FIRE.
 
-Aplikace nevyžaduje žádné složité závislosti a běží na libovolném moderním stroji s Node.js.
+### Systémové klávesy konzole Atari
 
-### 1. Spuštění lokálního serveru
-
-```bash
-npm start
-```
-
-V terminálu uvidíte adresy:
-- **Lokální aplikace (PC):** `http://localhost:8080/`
-- **Mobilní Companion Uploader:** `http://<Vase-IP-adresa>:8080/upload`
-
-Otevřete `http://localhost:8080/` v prohlížeči a ihned můžete začít psát příkazy v Atari BASICu nebo přetáhnout libovolný `.atr` či `.xex` soubor do okna.
+| Klávesa na PC / TV klávesnici | Funkce v Atari 800/XE |
+| :--- | :--- |
+| **F4** | Konzole: **START** (spuštění většiny kazet/her) |
+| **F3** | Konzole: **SELECT** |
+| **F2** | Konzole: **OPTION** (při startu vypíná BASIC pro hry na disketách) |
+| **F5** | Konzole: **RESET** (teplý restart / Warmstart) |
+| **Shift + F5** | **COLD RESET** (studený restart počítače) |
+| **F1** | **EMULATOR MENU** (interní konfigurace Atari800, správa disket D1:–D8:) |
+| **F6** | Klávesa **HELP** (u modelů XL / XE) |
+| **Tab** | Klávesa **TAB** |
+| **Escape** | Klávesa **ESC** |
 
 ---
 
 ## 📺 Instalace na LG Smart TV (webOS)
 
-Kompletní podrobný návod krok za krokem naleznete v samostatném dokumentu:
-👉 **[Návod k instalaci na LG webOS (INSTALL-WEBOS.md)](INSTALL-WEBOS.md)**
+Instalace je přizpůsobena stejnému postupu jako u projektu [MyTUYA Smart Dashboard](https://github.com/macikm/mytuya-releases):
 
-Aplikaci lze nainstalovat velmi jednoduše bez nutnosti instalovat vývojářské nástroje do PC:
-1. Zapněte na televizi aplikaci **Developer Mode** a aktivujte **Key Server**.
-2. Na PC spusťte bezplatný nástroj **[webOS Dev Manager](https://github.com/webosbrew/dev-manager-desktop/releases/latest)**.
-3. Připojte televizi a v sekci **Apps** nainstalujte stažený soubor `.ipk`.
+👉 **[Kompletní návod k instalaci na LG webOS krok za krokem (INSTALL-WEBOS.md)](INSTALL-WEBOS.md)**
 
-### Získání balíčku `.ipk`:
-- **Z GitHub Actions:** V záložce **Actions** -> **Build LG webOS IPK Package** -> klikněte na **Run workflow**. Po dokončení stáhněte balíček v sekci *Artifacts*.
-- **Lokální sestavení (pokud máte webOS CLI):**
+Stručný přehled:
+1. V televizi nainstalujte z LG Content Store aplikaci **Developer Mode**, přihlaste se a zapněte **Dev Mode Status** a **Key Server**.
+2. Na PC spusťte desktopovou aplikaci **[webOS Dev Manager](https://github.com/webosbrew/dev-manager-desktop/releases/latest)** a připojte se k IP adrese TV.
+3. V záložce **Apps** klikněte na **Install** a vyberte balíček `.ipk`.
+
+### Jak získat balíček `.ipk`:
+- **Z GitHub Actions (bez nutnosti instalovat CLI do počítače):**
+  1. V repozitáři přejděte do záložky **Actions**.
+  2. V levém sloupci vyberte **Build LG webOS IPK Package**.
+  3. Klikněte na rozbalovací nabídku **Run workflow** a potvrďte zeleným tlačítkem **Run workflow**.
+  4. Po dokončení (cca 1 minuta) rozklikněte proběhlou akci a dole v části **Artifacts** stáhněte archiv obsahující hotový `.ipk`.
+- **Lokální sestavení (pokud máte Node.js):**
   ```bash
   npm run package:webos
   ```
 
 ---
 
-## 🎮 Klávesové zkratky
+## 🚀 Lokální spuštění na PC (pro vývoj a hraní v prohlížeči)
 
-| Klávesa na PC / TV klávesnici | Funkce v Atari 800/XE |
-| :--- | :--- |
-| **F1** | Konzole: **START** |
-| **F2** | Konzole: **SELECT** |
-| **F3** | Konzole: **OPTION** (při startu vypne BASIC) |
-| **F4** | Konzole: **RESET** (Warmstart) |
-| **Shift + F4** | **COLD RESTART** (studený restart počítače) |
-| **Šipky / Num 8, 2, 4, 6** | Pohyb joysticku (Nahoru, Dolů, Vlevo, Vpravo) |
-| **Pravý Ctrl / Num 0** | Tlačítko **FIRE** (střelba / akce) |
-| **Tlačítko Mód v liště** | Přepnutí mezi módem BASIC (plná klávesnice) a herním WASD |
-| **Alfanumerické klávesy** | Standardní psaní textu a příkazů v BASICu (včetně W, S, A, D) |
+```bash
+# Spuštění lokálního serveru
+npm start
+```
+Otevřete v prohlížeči:
+- **Aplikace:** `http://localhost:8080/`
+- **Mobilní nahrávání her:** `http://<Vase-IP-adresa>:8080/upload`
+
+---
+
+## 🙏 Poděkování a původ komponent (Attribution & Credits)
+
+Tento projekt staví na skvělé práci retro a open-source komunity:
+- **Emulační jádro Atari800:** Oficiální open-source projekt [Atari800](https://github.com/atari800/atari800) (GPL-2.0+), přenosný emulátor počítačů Atari 8-bit a konzole 5200 vyvíjený od roku 1995.
+- **WebAssembly & Emscripten build:** Využívá optimalizovaný build a JavaScriptové rozhraní z projektu [GenX-DOS](https://github.com/Retro-Jack/GenX-DOS) (autor Retro-Jack).
+- **Operační systém a BASIC:** 
+  - Originální ROM soubory počítačů Atari XL/XE: **Atari XL/XE OS Rev. 2** (16 KB) a **Atari BASIC Rev. C** (8 KB).
+  - Projekt plně podporuje též svobodný [AltirraOS a Altirra BASIC](http://www.virtualdub.org/altirra.html) (autor Avery Lee).
+- **WebOS integrace a workflow:** Postup instalace a struktura distribuce jsou inspirovány projekty [mytuya-releases](https://github.com/macikm/mytuya-releases) a [webOS Homebrew / webOS Dev Manager](https://github.com/webosbrew/dev-manager-desktop).
 
 ---
 
 ## 📄 Licence
 
 Tento projekt je šířen pod licencí **GNU General Public License v2.0 or later (GPL-2.0-or-later)**.
-Vytvořeno s ❤️ pro retro komunitu Atari a LG webOS.
-
+Vytvořeno s úctou k odkazu počítačů Atari pro komunitu retro hráčů a majitelů LG webOS televizí.

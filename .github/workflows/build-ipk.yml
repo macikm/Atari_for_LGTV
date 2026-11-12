@@ -21,11 +21,11 @@ jobs:
       - name: Nastavení Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
-      - name: Instalace LG webOS TV CLI (ares-cli)
+      - name: Instalace závislostí včetně LG webOS CLI
         run: |
-          npm install -g @webos-tools/cli
+          npm install
 
       - name: Sestavení webové distribuce
         run: |
@@ -34,7 +34,7 @@ jobs:
       - name: Zabalení IPK balíčku
         run: |
           mkdir -p output
-          ares-package dist -o output
+          npx ares-package dist -o output
 
       - name: Uložení IPK jako GitHub Actions Artifact
         uses: actions/upload-artifact@v4

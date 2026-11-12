@@ -7,10 +7,13 @@
     "start": "node scripts/server.js",
     "dev": "node scripts/server.js",
     "build": "node scripts/build.js",
-    "package:webos": "npm run build && ares-package dist -o .",
-    "install:tv": "ares-install --device tv atariwebos_1.0.0_all.ipk",
-    "launch:tv": "ares-launch --device tv cz.macikm.atariwebos",
-    "inspect:tv": "ares-inspect --device tv -a cz.macikm.atariwebos"
+    "package:webos": "npm run build && npx ares-package dist -o .",
+    "install:tv": "npx ares-install --device tv atariwebos_1.0.0_all.ipk",
+    "launch:tv": "npx ares-launch --device tv cz.macikm.atariwebos",
+    "inspect:tv": "npx ares-inspect --device tv -a cz.macikm.atariwebos"
+  },
+  "devDependencies": {
+    "@webos-tools/cli": "^3.0.0"
   },
   "keywords": [
     "atari",
