@@ -64,37 +64,22 @@ Otevřete `http://localhost:8080/` v prohlížeči a ihned můžete začít psá
 
 ---
 
-## 📺 Sestavení a instalace na LG Smart TV (webOS)
+## 📺 Instalace na LG Smart TV (webOS)
 
-Pro instalaci na reálnou LG TV budete potřebovat [webOS TV CLI nástroje](https://webostv.developer.lge.com/develop/tools/cli-introduction) (`ares-cli`).
+Kompletní podrobný návod krok za krokem naleznete v samostatném dokumentu:
+👉 **[Návod k instalaci na LG webOS (INSTALL-WEBOS.md)](INSTALL-WEBOS.md)**
 
-### 1. Příprava distribuce a zabalení do `.ipk`
+Aplikaci lze nainstalovat velmi jednoduše bez nutnosti instalovat vývojářské nástroje do PC:
+1. Zapněte na televizi aplikaci **Developer Mode** a aktivujte **Key Server**.
+2. Na PC spusťte bezplatný nástroj **[webOS Dev Manager](https://github.com/webosbrew/dev-manager-desktop/releases/latest)**.
+3. Připojte televizi a v sekci **Apps** nainstalujte stažený soubor `.ipk`.
 
-```bash
-npm run package:webos
-```
-Tento příkaz vytvoří instalační balíček `cz.macikm.atariwebos_1.0.0_all.ipk`.
-
-### 2. Připojení k televizi
-
-Na televizi zapněte **Developer Mode** a spusťte aplikaci *Developer Mode App*. Zjistěte IP adresu a přístupový klíč. V konzoli na PC nastavte zařízení:
-
-```bash
-ares-setup-device
-```
-
-### 3. Instalace a spuštění na TV
-
-```bash
-# Instalace do připojené televize
-npm run install:tv
-
-# Spuštění aplikace na TV
-npm run launch:tv
-
-# Vzdálené debugování (otevře Chrome DevTools pro TV)
-npm run inspect:tv
-```
+### Získání balíčku `.ipk`:
+- **Z GitHub Actions:** V záložce **Actions** -> **Build LG webOS IPK Package** -> klikněte na **Run workflow**. Po dokončení stáhněte balíček v sekci *Artifacts*.
+- **Lokální sestavení (pokud máte webOS CLI):**
+  ```bash
+  npm run package:webos
+  ```
 
 ---
 

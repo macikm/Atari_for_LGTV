@@ -1,0 +1,50 @@
+name: Build LG webOS IPK Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Verze balíčku (např. 1.0.0)'
+        required: false
+        default: '1.0.0'
+  release:
+    types: [published]
+
+jobs:
+  build-ipk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repozitáře
+        uses: actions/checkout@v4
+
+      - name: Nastavení Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalace LG webOS TV CLI (ares-cli)
+        run: |
+          npm install -g @webosbrew/ares-cli
+
+      - name: Sestavení webové distribuce
+        run: |
+          node scripts/build.js
+
+      - name: Zabalení IPK balíčku
+        run: |
+          mkdir -p output
+          ares-package dist -o output
+
+      - name: Uložení IPK jako GitHub Actions Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AtariWebOS-webOS-IPK
+          path: output/*.ipk
+          if-no-files-found: error
+
+      - name: Nahrání do GitHub Release (pokud je spuštěno z Release)
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: output/*.ipk
