@@ -38,6 +38,16 @@ fs.copyFileSync(path.join(WEBOS_DIR, 'appinfo.json'), path.join(DIST_DIR, 'appin
   }
 });
 
+// Copy wasm directory
+const WASM_SRC = path.join(SRC_DIR, 'wasm');
+const WASM_DIST = path.join(DIST_DIR, 'wasm');
+if (fs.existsSync(WASM_SRC)) {
+  fs.mkdirSync(WASM_DIST, { recursive: true });
+  fs.readdirSync(WASM_SRC).forEach(file => {
+    fs.copyFileSync(path.join(WASM_SRC, file), path.join(WASM_DIST, file));
+  });
+}
+
 console.log('✅ Build completed successfully in /dist directory.');
 console.log('To package IPK: ares-package dist -o .');
 
