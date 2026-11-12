@@ -5,6 +5,13 @@ category: games
 pool: main
 description: |
   Standalone open-source Atari 800 / 800XL / 130XE emulator for LG webOS TV.
-  Features 60 FPS Canvas emulation, full Atari BASIC (Rev C), POKEY audio,
-  local disk storage (IndexedDB), and remote WiFi file uploading from mobile/PC.
 
+  Features:
+  - Cycle-exact MOS 6502 CPU and ANTIC/GTIA/POKEY emulation (via WebAssembly).
+  - Genuine Atari BASIC (Revision C) support with full variable handling and graphics modes (GR.0 - GR.8).
+  - Authentic Atari XL/XE OS Rev 2 and POKEY sound synthesis.
+  - 60 FPS rendering with optional retro CRT scanlines filter.
+  - Physical USB/wireless keyboard and joystick support with Magic Remote compatibility.
+  - Built-in IndexedDB storage for persistent game floppy disks (.atr, .xex, .rom, .car).
+  - Mobile companion web interface for instant wireless game file uploads over Wi-Fi via QR code.
+  - Multi-language UI support (English, Czech, Slovak, German, Spanish, Italian).

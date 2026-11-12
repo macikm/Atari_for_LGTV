@@ -1,5 +1,7 @@
 # Instalace AtariWebOS na LG webOS
 
+> 🇬🇧 **[English version available here](INSTALL-WEBOS.en.md)**
+
 Aplikace **AtariWebOS** přináší plnohodnotný emulátor počítačů Atari 800/XE s podporou Atari BASICu, ukládáním her a ovládáním fyzickou klávesnicí i dálkovým ovladačem přímo na obrazovku vaší televize LG.
 
 ## Co potřebujete
