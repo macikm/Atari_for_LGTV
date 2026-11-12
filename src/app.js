@@ -113,92 +113,17 @@ class AtariStorage {
 }
 
 // ============================================================================
-// 2. Web Audio & Sound Helper with Fail-Safe Mute for Wasm SDL2
+// 2. Web Audio & Sound Helper with Direct Buffer Mute Control
 // ============================================================================
 
 class AtariAudioEngine {
   constructor() {
     this.enabled = true;
-    this.hookedNode = null;
-    this.setupAudioHookPoll();
-  }
-
-  setupAudioHookPoll() {
-    // Poll for SDL2 audio initialization so we hook onaudioprocess as soon as it appears
-    const interval = setInterval(() => {
-      const node = window.Module?.SDL2?.audio?.scriptProcessorNode;
-      if (node && node !== this.hookedNode) {
-        this.hookScriptProcessor(node);
-      }
-    }, 250);
-  }
-
-  hookScriptProcessor(node) {
-    this.hookedNode = node;
-    const sdl = window.Module?.SDL2;
-    if (!sdl || !node) return;
-
-    if (!sdl.audio._origOnAudioProcess) {
-      sdl.audio._origOnAudioProcess = node.onaudioprocess;
-    }
-
-    const self = this;
-    node.onaudioprocess = function (e) {
-      if (!self.enabled) {
-        // Complete absolute silence: fill all audio channels with zeroes
-        for (let c = 0; c < e.outputBuffer.numberOfChannels; c++) {
-          e.outputBuffer.getChannelData(c).fill(0);
-        }
-        return;
-      }
-      if (typeof sdl.audio._origOnAudioProcess === 'function') {
-        sdl.audio._origOnAudioProcess.call(this, e);
-      }
-    };
-
-    // If currently muted when node appears, apply mute immediately
-    if (!this.enabled) {
-      this.applyMuteState();
-    }
-  }
-
-  applyMuteState() {
-    const sdl = window.Module?.SDL2;
-    if (!sdl) return;
-
-    if (!this.enabled) {
-      // 1. Disconnect node from audio destination
-      if (sdl.audio?.scriptProcessorNode) {
-        try {
-          sdl.audio.scriptProcessorNode.disconnect();
-        } catch (e) {}
-      }
-      // 2. Suspend audio context
-      if (sdl.audioContext && sdl.audioContext.state === 'running') {
-        try {
-          sdl.audioContext.suspend().catch(() => {});
-        } catch (e) {}
-      }
-    } else {
-      // 1. Resume audio context
-      if (sdl.audioContext && sdl.audioContext.state === 'suspended') {
-        try {
-          sdl.audioContext.resume().catch(() => {});
-        } catch (e) {}
-      }
-      // 2. Reconnect node to destination
-      if (sdl.audio?.scriptProcessorNode && sdl.audioContext) {
-        try {
-          sdl.audio.scriptProcessorNode.connect(sdl.audioContext.destination);
-        } catch (e) {}
-      }
-    }
   }
 
   init() {
-    const sdl = window.Module?.SDL2;
-    if (sdl?.audioContext && sdl.audioContext.state === 'suspended' && this.enabled) {
-      sdl.audioContext.resume().catch(() => {});
+    if (window.Module?.SDL2?.audioContext && window.Module.SDL2.audioContext.state === 'suspended') {
+      window.Module.SDL2.audioContext.resume().catch(() => {});
     }
   }
 
@@ -208,14 +133,9 @@ class AtariAudioEngine {
 
   toggle() {
     this.enabled = !this.enabled;
-
-    // Ensure hook is active
-    const node = window.Module?.SDL2?.audio?.scriptProcessorNode;
-    if (node && node !== this.hookedNode) {
-      this.hookScriptProcessor(node);
+    if (window.Module) {
+      window.Module['isAudioMuted'] = !this.enabled;
     }
-
-    this.applyMuteState();
     return this.enabled;
   }
 }

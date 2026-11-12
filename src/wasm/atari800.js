@@ -7792,8 +7792,14 @@ var ASM_CONSTS = {
   },
   366237: ($0, $1) => {
     var SDL2 = Module['SDL2'];
-    var buf = $0 >>> 2;
     var numChannels = SDL2.audio.currentOutputBuffer['numberOfChannels'];
+    if (Module['isAudioMuted']) {
+      for (var c = 0; c < numChannels; ++c) {
+        SDL2.audio.currentOutputBuffer['getChannelData'](c).fill(0);
+      }
+      return;
+    }
+    var buf = $0 >>> 2;
     for (var c = 0; c < numChannels; ++c) {
       var channelData = SDL2.audio.currentOutputBuffer['getChannelData'](c);
       if (channelData.length != $1) {
