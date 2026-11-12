@@ -45,6 +45,9 @@
 
       <!-- Global Top Controls -->
       <div class="top-controls">
+        <button id="btnToggleInputMode" class="btn" title="Přepnout režim vstupu: Plná klávesnice pro BASIC vs. Herní WASD">
+          <span>⌨️</span> Mód: BASIC
+        </button>
         <button id="btnCompanionModal" class="btn" title="Nahrávání her z mobilu/PC přes QR kód">
           <span>📱</span> Nahrát z mobilu
         </button>
@@ -137,11 +140,15 @@
             <table class="key-table">
               <tr>
                 <td>Pohyb (nahoru, dolů, vlevo, vpravo)</td>
-                <td><span class="key-badge">Šipky</span> / <span class="key-badge">W, S, A, D</span></td>
+                <td><span class="key-badge">Šipky</span> nebo <span class="key-badge">Num 8, 2, 4, 6</span></td>
               </tr>
               <tr>
                 <td>Tlačítko FIRE (střelba / akce)</td>
-                <td><span class="key-badge">Mezerník</span> nebo <span class="key-badge">Pravý Ctrl</span></td>
+                <td><span class="key-badge">Pravý Ctrl</span> nebo <span class="key-badge">Num 0</span></td>
+              </tr>
+              <tr>
+                <td>Alternativa pro akční hry</td>
+                <td>Tlačítkem <strong>Mód: BASIC / WASD</strong> v horní liště lze povolit i klávesy <span class="key-badge">W, S, A, D</span></td>
               </tr>
             </table>
           </div>
@@ -259,3 +266,4 @@
   <script type="module" src="app.js"></script>
 </body>
 </html>
+

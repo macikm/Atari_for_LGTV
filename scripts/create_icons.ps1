@@ -34,3 +34,4 @@ function Create-AtariIcon {
 
 Create-AtariIcon -width 80 -height 80 -filePath "webos/icon.png"
 Create-AtariIcon -width 130 -height 130 -filePath "webos/largeIcon.png"
+

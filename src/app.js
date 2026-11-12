@@ -361,6 +361,7 @@ class AtariEngine {
 
     // Joystick 1 State (bitmask: 1=UP, 2=DOWN, 4=LEFT, 8=RIGHT, 16=FIRE)
     this.joystickState = 0;
+    this.wasdJoystickEnabled = false; // By default FALSE to allow full typing in BASIC!
 
     // Wasm native module bridge placeholder
     this.wasmModule = null;
@@ -712,6 +713,8 @@ class AtariApp {
     this.companionModal = document.getElementById('companionModal');
     this.qrContainer = document.getElementById('qrContainer');
     this.companionUrlDisplay = document.getElementById('companionUrlDisplay');
+    this.wasdJoystickEnabled = false;
+    this.btnToggleInputMode = document.getElementById('btnToggleInputMode');
 
     // Loop & Performance
     this.lastFrameTime = performance.now();
@@ -803,28 +806,28 @@ class AtariApp {
         return;
       }
 
-      // Handle Joystick 1 (Arrows + Space)
-      if (e.code === 'ArrowUp' || e.code === 'KeyW') {
+      // Handle Joystick 1 (Arrow keys & Numpad are dedicated to Joystick)
+      if (e.code === 'ArrowUp' || e.code === 'Numpad8' || (this.wasdJoystickEnabled && e.code === 'KeyW')) {
         this.engine.joystickState |= 1;
         e.preventDefault();
         return;
       }
-      if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+      if (e.code === 'ArrowDown' || e.code === 'Numpad2' || (this.wasdJoystickEnabled && e.code === 'KeyS')) {
         this.engine.joystickState |= 2;
         e.preventDefault();
         return;
       }
-      if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+      if (e.code === 'ArrowLeft' || e.code === 'Numpad4' || (this.wasdJoystickEnabled && e.code === 'KeyA')) {
         this.engine.joystickState |= 4;
         e.preventDefault();
         return;
       }
-      if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+      if (e.code === 'ArrowRight' || e.code === 'Numpad6' || (this.wasdJoystickEnabled && e.code === 'KeyD')) {
         this.engine.joystickState |= 8;
         e.preventDefault();
         return;
       }
-      if (e.code === 'ControlRight') {
+      if (e.code === 'ControlRight' || e.code === 'Numpad0') {
         this.engine.joystickState |= 16;
         e.preventDefault();
         return;
@@ -844,11 +847,11 @@ class AtariApp {
     });
 
     window.addEventListener('keyup', (e) => {
-      if (e.code === 'ArrowUp' || e.code === 'KeyW') this.engine.joystickState &= ~1;
-      if (e.code === 'ArrowDown' || e.code === 'KeyS') this.engine.joystickState &= ~2;
-      if (e.code === 'ArrowLeft' || e.code === 'KeyA') this.engine.joystickState &= ~4;
-      if (e.code === 'ArrowRight' || e.code === 'KeyD') this.engine.joystickState &= ~8;
-      if (e.code === 'ControlRight') this.engine.joystickState &= ~16;
+      if (e.code === 'ArrowUp' || e.code === 'Numpad8' || (this.wasdJoystickEnabled && e.code === 'KeyW')) this.engine.joystickState &= ~1;
+      if (e.code === 'ArrowDown' || e.code === 'Numpad2' || (this.wasdJoystickEnabled && e.code === 'KeyS')) this.engine.joystickState &= ~2;
+      if (e.code === 'ArrowLeft' || e.code === 'Numpad4' || (this.wasdJoystickEnabled && e.code === 'KeyA')) this.engine.joystickState &= ~4;
+      if (e.code === 'ArrowRight' || e.code === 'Numpad6' || (this.wasdJoystickEnabled && e.code === 'KeyD')) this.engine.joystickState &= ~8;
+      if (e.code === 'ControlRight' || e.code === 'Numpad0') this.engine.joystickState &= ~16;
     });
   }
 
@@ -974,6 +977,22 @@ class AtariApp {
   // UI & TV Event Listeners
   // ==========================================================================
   setupUIEvents() {
+    // Keyboard Input Profile Toggle (BASIC Mode vs WASD Game Mode)
+    if (this.btnToggleInputMode) {
+      this.btnToggleInputMode.addEventListener('click', () => {
+        this.wasdJoystickEnabled = !this.wasdJoystickEnabled;
+        if (this.wasdJoystickEnabled) {
+          this.btnToggleInputMode.innerHTML = '<span>🕹️</span> Mód: Herní WASD';
+          this.btnToggleInputMode.classList.add('btn-primary');
+          this.flashNotice('Aktivován herní režim (WASD = Joystick)');
+        } else {
+          this.btnToggleInputMode.innerHTML = '<span>⌨️</span> Mód: BASIC';
+          this.btnToggleInputMode.classList.remove('btn-primary');
+          this.flashNotice('Aktivován režim BASIC (plná klávesnice)');
+        }
+      });
+    }
+
     // Audio Toggle
     document.getElementById('btnToggleAudio').addEventListener('click', () => {
       this.audio.init();
@@ -1111,3 +1130,4 @@ class AtariApp {
 window.addEventListener('DOMContentLoaded', () => {
   window.atariApp = new AtariApp();
 });
+

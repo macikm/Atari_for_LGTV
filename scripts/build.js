@@ -40,3 +40,4 @@ fs.copyFileSync(path.join(WEBOS_DIR, 'appinfo.json'), path.join(DIST_DIR, 'appin
 
 console.log('✅ Build completed successfully in /dist directory.');
 console.log('To package IPK: ares-package dist -o .');
+

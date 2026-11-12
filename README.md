@@ -107,9 +107,10 @@ npm run inspect:tv
 | **F3** | Konzole: **OPTION** (při startu vypne BASIC) |
 | **F4** | Konzole: **RESET** (Warmstart) |
 | **Shift + F4** | **COLD RESTART** (studený restart počítače) |
-| **Šipky / W, S, A, D** | Pohyb joysticku (Nahoru, Dolů, Vlevo, Vpravo) |
-| **Mezerník / Pravý Ctrl** | Tlačítko **FIRE** (střelba / akce) |
-| **Alfanumerické klávesy** | Standardní psaní textu a příkazů v BASICu |
+| **Šipky / Num 8, 2, 4, 6** | Pohyb joysticku (Nahoru, Dolů, Vlevo, Vpravo) |
+| **Pravý Ctrl / Num 0** | Tlačítko **FIRE** (střelba / akce) |
+| **Tlačítko Mód v liště** | Přepnutí mezi módem BASIC (plná klávesnice) a herním WASD |
+| **Alfanumerické klávesy** | Standardní psaní textu a příkazů v BASICu (včetně W, S, A, D) |
 
 ---
 
@@ -117,3 +118,4 @@ npm run inspect:tv
 
 Tento projekt je šířen pod licencí **GNU General Public License v2.0 or later (GPL-2.0-or-later)**.
 Vytvořeno s ❤️ pro retro komunitu Atari a LG webOS.
+
