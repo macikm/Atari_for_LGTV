@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>AtariWebOS - Atari 800/XE Emulator</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/png" href="../webos/icon.png">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Status & Navigation Bar -->
+    <header class="top-bar">
+      <div class="brand">
+        <svg class="logo-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <!-- Stylized Atari Fuji Logo -->
+          <rect x="44" y="10" width="12" height="80" rx="2" />
+          <path d="M 32 90 L 32 50 C 32 30 20 20 10 20 L 10 32 C 16 32 22 40 22 55 L 22 90 Z" />
+          <path d="M 68 90 L 68 50 C 68 30 80 20 90 20 L 90 32 C 84 32 78 40 78 55 L 78 90 Z" />
+        </svg>
+        <h1 class="brand-title">ATARI<span style="color:var(--atari-blue)">WebOS</span></h1>
+        <span class="brand-badge">800 / XE</span>
+      </div>
+
+      <!-- Live Emulation & Drive Status -->
+      <div class="status-indicators">
+        <div class="indicator-item" title="Emulation Frame Rate">
+          <span>FPS:</span>
+          <span id="fpsCounter" class="status-value">60</span>
+        </div>
+        <div class="indicator-item" title="Audio Buffer Status">
+          <span class="led led-green active" id="audioLed"></span>
+          <span>SND</span>
+        </div>
+        <div class="indicator-item" title="Floppy Drive 1 Activity LED">
+          <span class="led led-amber" id="drive1Led"></span>
+          <span>D1:</span>
+        </div>
+        <div class="indicator-item" title="Loaded Media Name">
+          <span>MEDIA:</span>
+          <span id="loadedMediaName" class="status-value">Atari BASIC (ROM)</span>
+        </div>
+      </div>
+
+      <!-- Global Top Controls -->
+      <div class="top-controls">
+        <button id="btnCompanionModal" class="btn" title="Nahrávání her z mobilu/PC přes QR kód">
+          <span>📱</span> Nahrát z mobilu
+        </button>
+        <button id="btnToggleAudio" class="btn" title="Zapnout/Vypnout zvuk">
+          <span id="audioIcon">🔊</span>
+        </button>
+        <button id="btnToggleScanlines" class="btn" title="CRT Scanlines filtr">
+          <span>📺</span> CRT
+        </button>
+        <button id="btnToggleFullscreen" class="btn" title="Celá obrazovka">
+          <span>⛶</span> Fullscreen
+        </button>
+        <button id="btnToggleSidebar" class="btn btn-primary" title="Otevřít / zavřít postranní panel">
+          <span id="sidebarToggleIcon">☰</span> Knihovna & Ovládání
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Workspace Layout -->
+    <main class="workspace-layout">
+      <!-- Screen Viewport for Emulator -->
+      <section class="viewport-section" id="viewportSection">
+        <div class="screen-wrapper" id="screenWrapper">
+          <canvas id="emulatorCanvas" width="336" height="240" tabindex="1"></canvas>
+          <div class="crt-overlay" id="crtOverlay"></div>
+        </div>
+
+        <div id="viewportMessage" class="viewport-message">
+          Přetáhněte sem soubor (.atr, .xex, .rom, .car, .cas)
+        </div>
+
+        <!-- Quick Function Buttons (Start, Select, Option, Reset) -->
+        <nav class="quick-control-bar" aria-label="Console Keys">
+          <button id="btnConsoleOption" class="atari-key-btn" title="Klávesa OPTION (F3)">OPTION (F3)</button>
+          <button id="btnConsoleSelect" class="atari-key-btn" title="Klávesa SELECT (F2)">SELECT (F2)</button>
+          <button id="btnConsoleStart" class="atari-key-btn" title="Klávesa START (F1)">START (F1)</button>
+          <button id="btnConsoleReset" class="atari-key-btn" title="RESET / Warmstart (F4)">RESET (F4)</button>
+          <button id="btnColdReset" class="atari-key-btn" title="Studený restart (Cold Reset)">COLD RESTART</button>
+        </nav>
+      </section>
+
+      <!-- Sidebar Tabs (Library & Help) -->
+      <aside class="sidebar-panel" id="sidebarPanel">
+        <div class="panel-tabs">
+          <button class="tab-btn active" data-tab="tabLibrary">
+            <span>💾</span> Knihovna her
+          </button>
+          <button class="tab-btn" data-tab="tabControls">
+            <span>🎮</span> Ovládání
+          </button>
+          <button class="tab-btn" data-tab="tabSettings">
+            <span>⚙️</span> Nastavení
+          </button>
+        </div>
+
+        <!-- Tab 1: Library & Local Files (IndexedDB) -->
+        <section id="tabLibrary" class="tab-content active">
+          <div class="library-header">
+            <h3>Uložené hry & disky</h3>
+            <span id="libraryCountBadge" class="game-badge">0 souborů</span>
+          </div>
+
+          <!-- Dropzone & Local Upload -->
+          <div class="dropzone-box" id="dropzoneBox">
+            <input type="file" id="fileUploadInput" multiple accept=".atr,.xex,.car,.rom,.cas,.bin" style="display:none">
+            <div class="dropzone-icon">📥</div>
+            <div class="dropzone-title">Nahrát hry a disky</div>
+            <div class="dropzone-desc">Klikněte nebo přetáhněte soubory .ATR, .XEX, .CAR, .ROM sem</div>
+          </div>
+
+          <!-- Search Filter -->
+          <div class="search-box">
+            <input type="text" id="librarySearchInput" class="input-text" placeholder="Hledat v knihovně...">
+          </div>
+
+          <!-- Game List Container -->
+          <div class="game-list" id="gameListContainer">
+            <!-- Dynamically populated from IndexedDB -->
+            <div class="empty-state" id="emptyStateMsg">
+              <span>🕹️</span>
+              <p>Zatím nemáte uloženy žádné hry v paměti TV.<br>Nahrajte diskety nebo spusťte Atari BASIC.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tab 2: Keyboard & Joystick Controls Guide -->
+        <section id="tabControls" class="tab-content">
+          <div class="help-section">
+            <h3 class="help-title">Herní ovládání (Joystick 1)</h3>
+            <table class="key-table">
+              <tr>
+                <td>Pohyb (nahoru, dolů, vlevo, vpravo)</td>
+                <td><span class="key-badge">Šipky</span> / <span class="key-badge">W, S, A, D</span></td>
+              </tr>
+              <tr>
+                <td>Tlačítko FIRE (střelba / akce)</td>
+                <td><span class="key-badge">Mezerník</span> nebo <span class="key-badge">Pravý Ctrl</span></td>
+              </tr>
+            </table>
+          </div>
+
+          <div class="help-section">
+            <h3 class="help-title">Systémové klávesy Atari</h3>
+            <table class="key-table">
+              <tr>
+                <td>START klávesa</td>
+                <td><span class="key-badge">F1</span></td>
+              </tr>
+              <tr>
+                <td>SELECT klávesa</td>
+                <td><span class="key-badge">F2</span></td>
+              </tr>
+              <tr>
+                <td>OPTION klávesa</td>
+                <td><span class="key-badge">F3</span> (při bootu vypíná BASIC)</td>
+              </tr>
+              <tr>
+                <td>RESET (Warmstart)</td>
+                <td><span class="key-badge">F4</span> nebo <span class="key-badge">Break</span></td>
+              </tr>
+              <tr>
+                <td>COLD RESET (studený restart)</td>
+                <td><span class="key-badge">Shift</span> + <span class="key-badge">F4</span></td>
+              </tr>
+              <tr>
+                <td>ATARI / Inverse video</td>
+                <td><span class="key-badge">Tab</span> / <span class="key-badge">Caps Lock</span></td>
+              </tr>
+              <tr>
+                <td>HELP klávesa (XL/XE)</td>
+                <td><span class="key-badge">F6</span></td>
+              </tr>
+            </table>
+          </div>
+
+          <div class="help-section">
+            <h3 class="help-title">Práce s Atari BASICem</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 10px;">
+              Fyzická klávesnice funguje přímo jako originální klávesnice počítačů Atari 800XL/130XE. Můžete psát přímo příkazy BASICu:
+            </p>
+            <div style="background:#090c14; padding:10px; border-radius:6px; font-family:var(--font-retro); font-size:0.85rem; color:#95b4fc;">
+              10 FOR I=1 TO 10<br>
+              20 PRINT "ATARI WEBOS "; I<br>
+              30 NEXT I<br>
+              RUN
+            </div>
+          </div>
+        </section>
+
+        <!-- Tab 3: Emulation Settings -->
+        <section id="tabSettings" class="tab-content">
+          <div class="help-section">
+            <h3 class="help-title">Nastavení emulátoru</h3>
+            
+            <div style="margin-bottom:14px;">
+              <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Model počítače:</label>
+              <select id="machineSelect" class="input-text">
+                <option value="800xl" selected>Atari 800XL (64 KB RAM)</option>
+                <option value="130xe">Atari 130XE (128 KB RAM)</option>
+                <option value="800">Atari 800 (48 KB RAM - OS-B)</option>
+              </select>
+            </div>
+
+            <div style="margin-bottom:14px;">
+              <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Televizní norma:</label>
+              <select id="tvSystemSelect" class="input-text">
+                <option value="pal" selected>PAL (50 Hz / Evropa)</option>
+                <option value="ntsc">NTSC (60 Hz / USA)</option>
+              </select>
+            </div>
+
+            <div style="margin-bottom:14px;">
+              <label style="display:block; font-size:0.85rem; margin-bottom:6px;">Zvuková vzorkovací frekvence:</label>
+              <select id="sampleRateSelect" class="input-text">
+                <option value="44100" selected>44.1 kHz (Doporučeno)</option>
+                <option value="48000">48.0 kHz</option>
+              </select>
+            </div>
+
+            <div style="margin-top:20px;">
+              <button id="btnClearAllData" class="btn btn-danger" style="width:100%;">
+                Smazat všechna data z paměti TV
+              </button>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </main>
+
+    <!-- Modal for Companion Web Upload (Mobile / PC upload over WiFi) -->
+    <div class="modal-overlay" id="companionModal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2 class="modal-title">Nahrát hry z mobilu či PC</h2>
+          <button id="btnCloseModal" class="btn btn-sm">✕ Zavřít</button>
+        </div>
+        <div class="qr-box" id="qrContainer">
+          <!-- Live QR code will be generated here -->
+        </div>
+        <div class="modal-url" id="companionUrlDisplay">http://localhost:8080/upload</div>
+        <p class="modal-desc">
+          Naskenujte QR kód fotoaparátem mobilního telefonu nebo zadejte adresu výše do prohlížeče v počítači na stejné Wi-Fi síti pro okamžité odeslání disket a her do televizoru.
+        </p>
+        <button id="btnModalUploadLocal" class="btn btn-primary" style="width: 100%;">
+          Vybrat soubory z tohoto zařízení
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Application Script -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>

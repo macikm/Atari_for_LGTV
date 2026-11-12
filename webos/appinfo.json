@@ -1,0 +1,20 @@
+{
+  "id": "cz.macikm.atariwebos",
+  "version": "1.0.0",
+  "vendor": "MacikM",
+  "type": "web",
+  "main": "index.html",
+  "title": "AtariWebOS",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "splashBackground": "#05070b",
+  "resolution": "1920x1080",
+  "supportGpu": true,
+  "handlesRelaunch": true,
+  "disableBackHistoryAPI": true,
+  "cursor": true,
+  "requiredVersion": "3.0.0",
+  "accessibility": {
+    "supportsAudioGuidance": false
+  }
+}

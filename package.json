@@ -1,0 +1,35 @@
+{
+  "name": "atari-webos",
+  "version": "1.0.0",
+  "description": "Atari 800/XE standalone emulator for LG webOS TV and modern web browsers",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node scripts/server.js",
+    "dev": "node scripts/server.js",
+    "build": "node scripts/build.js",
+    "package:webos": "npm run build && ares-package dist -o .",
+    "install:tv": "ares-install --device tv atariwebos_1.0.0_all.ipk",
+    "launch:tv": "ares-launch --device tv cz.macikm.atariwebos",
+    "inspect:tv": "ares-inspect --device tv -a cz.macikm.atariwebos"
+  },
+  "keywords": [
+    "atari",
+    "atari800",
+    "emulator",
+    "webos",
+    "lgtv",
+    "wasm",
+    "webassembly",
+    "retro-gaming"
+  ],
+  "author": "Martin Macko",
+  "license": "GPL-2.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/macikm/Atari_for_LGTV.git"
+  },
+  "bugs": {
+    "url": "https://github.com/macikm/Atari_for_LGTV/issues"
+  },
+  "homepage": "https://github.com/macikm/Atari_for_LGTV#readme"
+}
