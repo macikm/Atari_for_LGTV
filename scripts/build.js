@@ -38,6 +38,16 @@ fs.copyFileSync(path.join(WEBOS_DIR, 'appinfo.json'), path.join(DIST_DIR, 'appin
   }
 });
 
+// Copy roms directory
+const ROMS_SRC = path.join(SRC_DIR, 'roms');
+const ROMS_DIST = path.join(DIST_DIR, 'roms');
+if (fs.existsSync(ROMS_SRC)) {
+  fs.mkdirSync(ROMS_DIST, { recursive: true });
+  fs.readdirSync(ROMS_SRC).forEach(file => {
+    fs.copyFileSync(path.join(ROMS_SRC, file), path.join(ROMS_DIST, file));
+  });
+}
+
 // Copy wasm directory
 const WASM_SRC = path.join(SRC_DIR, 'wasm');
 const WASM_DIST = path.join(DIST_DIR, 'wasm');

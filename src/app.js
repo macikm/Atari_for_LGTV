@@ -159,8 +159,10 @@ class AtariWasmCore {
     console.log('Initializing Atari800 WebAssembly Core...');
     const self = this;
 
-    // Detect path to wasm directory relative to current location
-    const wasmPrefix = window.location.pathname.includes('/src/') ? 'wasm/' : 'wasm/';
+    // Detect path to wasm and roms directories relative to current location
+    const basePath = window.location.pathname.includes('/src/') ? '' : '';
+    const wasmPrefix = basePath + 'wasm/';
+    const romsPrefix = basePath + 'roms/';
 
     let args = [
       '-stretch', 'full',
@@ -169,6 +171,10 @@ class AtariWasmCore {
       '-horiz-area', 'tv',
       '-vert-area', 'tv'
     ];
+
+    // ROM options: load genuine Atari XL/XE OS & Atari BASIC
+    args.push('-xlxe_rom', '/atarixl.rom');
+    args.push('-basic_rom', '/ataribas.rom');
 
     // Determine machine type (default Atari 800XL)
     const machineSelect = document.getElementById('machineSelect');
@@ -197,14 +203,22 @@ class AtariWasmCore {
         args.push('/' + vfsName);
       }
     } else {
-      // Boot into Atari BASIC!
+      // Boot directly into Atari BASIC!
       args.push('-basic');
     }
 
     window.Module = {
-      canvas: this.canvas,
+      canvas: document.getElementById('canvas'),
       arguments: args,
       preRun: [function () {
+        // Preload genuine Atari ROMs into root MEMFS
+        try {
+          window.Module.FS.createPreloadedFile('/', 'atarixl.rom', romsPrefix + 'atarixl.rom', true, false);
+          window.Module.FS.createPreloadedFile('/', 'ataribas.rom', romsPrefix + 'ataribas.rom', true, false);
+        } catch (e) {
+          console.warn('ROM preloading note:', e);
+        }
+
         if (self.activeDiskFilename && self.activeDiskBytes) {
           const vfsName = 'media_' + self.activeDiskFilename.replace(/[^a-zA-Z0-9._-]/g, '_');
           try {
@@ -216,7 +230,7 @@ class AtariWasmCore {
         }
       }],
       postRun: [function () {
-        console.log('Atari800 WASM running successfully!');
+        console.log('Atari800 WASM running successfully with Atari OS & BASIC!');
         self.isLoaded = true;
       }],
       locateFile: function (path, prefix) {
@@ -240,7 +254,6 @@ class AtariWasmCore {
       script.src = wasmPrefix + 'atari800.js';
       document.body.appendChild(script);
     } else {
-      // If already loaded and we want to reboot with new media, we can trigger re-init or reload
       window.location.reload();
     }
   }
@@ -315,7 +328,7 @@ class AtariApp {
   constructor() {
     this.storage = new AtariStorage();
     this.audio = new AtariAudioEngine();
-    this.canvas = document.getElementById('emulatorCanvas');
+    this.canvas = document.getElementById('canvas');
     this.wasmCore = new AtariWasmCore(this.canvas);
 
     // UI Elements
