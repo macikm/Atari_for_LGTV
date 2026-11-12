@@ -113,49 +113,92 @@ class AtariStorage {
 }
 
 // ============================================================================
-// 2. Web Audio & Sound Helper with Master Mute Control for Wasm SDL2
+// 2. Web Audio & Sound Helper with Fail-Safe Mute for Wasm SDL2
 // ============================================================================
 
 class AtariAudioEngine {
   constructor() {
-    this.audioContext = null;
-    this.masterGain = null;
     this.enabled = true;
-    this.interceptAudioContext();
+    this.hookedNode = null;
+    this.setupAudioHookPoll();
   }
 
-  interceptAudioContext() {
+  setupAudioHookPoll() {
+    // Poll for SDL2 audio initialization so we hook onaudioprocess as soon as it appears
+    const interval = setInterval(() => {
+      const node = window.Module?.SDL2?.audio?.scriptProcessorNode;
+      if (node && node !== this.hookedNode) {
+        this.hookScriptProcessor(node);
+      }
+    }, 250);
+  }
+
+  hookScriptProcessor(node) {
+    this.hookedNode = node;
+    const sdl = window.Module?.SDL2;
+    if (!sdl || !node) return;
+
+    if (!sdl.audio._origOnAudioProcess) {
+      sdl.audio._origOnAudioProcess = node.onaudioprocess;
+    }
+
     const self = this;
-    const OriginalAudioContext = window.AudioContext || window.webkitAudioContext;
-    if (!OriginalAudioContext) return;
-
-    // Wrap AudioContext so any audio stream created by Wasm/SDL2 flows through Master Gain
-    window.AudioContext = class extends OriginalAudioContext {
-      constructor(...args) {
-        super(...args);
-        self.audioContext = this;
-        self.masterGain = this.createGain();
-        self.masterGain.gain.setValueAtTime(self.enabled ? 1.0 : 0.0, this.currentTime);
-        self.masterGain.connect(super.destination);
-
-        // Redirect destination property so any node connecting to destination connects via masterGain
-        Object.defineProperty(this, 'destination', {
-          get: () => self.masterGain,
-          configurable: true
-        });
+    node.onaudioprocess = function (e) {
+      if (!self.enabled) {
+        // Complete absolute silence: fill all audio channels with zeroes
+        for (let c = 0; c < e.outputBuffer.numberOfChannels; c++) {
+          e.outputBuffer.getChannelData(c).fill(0);
+        }
+        return;
+      }
+      if (typeof sdl.audio._origOnAudioProcess === 'function') {
+        sdl.audio._origOnAudioProcess.call(this, e);
       }
     };
-    if (window.webkitAudioContext) {
-      window.webkitAudioContext = window.AudioContext;
+
+    // If currently muted when node appears, apply mute immediately
+    if (!this.enabled) {
+      this.applyMuteState();
+    }
+  }
+
+  applyMuteState() {
+    const sdl = window.Module?.SDL2;
+    if (!sdl) return;
+
+    if (!this.enabled) {
+      // 1. Disconnect node from audio destination
+      if (sdl.audio?.scriptProcessorNode) {
+        try {
+          sdl.audio.scriptProcessorNode.disconnect();
+        } catch (e) {}
+      }
+      // 2. Suspend audio context
+      if (sdl.audioContext && sdl.audioContext.state === 'running') {
+        try {
+          sdl.audioContext.suspend().catch(() => {});
+        } catch (e) {}
+      }
+    } else {
+      // 1. Resume audio context
+      if (sdl.audioContext && sdl.audioContext.state === 'suspended') {
+        try {
+          sdl.audioContext.resume().catch(() => {});
+        } catch (e) {}
+      }
+      // 2. Reconnect node to destination
+      if (sdl.audio?.scriptProcessorNode && sdl.audioContext) {
+        try {
+          sdl.audio.scriptProcessorNode.connect(sdl.audioContext.destination);
+        } catch (e) {}
+      }
     }
   }
 
   init() {
-    if (this.audioContext && this.audioContext.state === 'suspended' && this.enabled) {
-      this.audioContext.resume().catch(() => {});
-    }
-    if (window.Module?.SDL2?.audioContext && window.Module.SDL2.audioContext.state === 'suspended' && this.enabled) {
-      window.Module.SDL2.audioContext.resume().catch(() => {});
+    const sdl = window.Module?.SDL2;
+    if (sdl?.audioContext && sdl.audioContext.state === 'suspended' && this.enabled) {
+      sdl.audioContext.resume().catch(() => {});
     }
   }
 
@@ -166,41 +209,13 @@ class AtariAudioEngine {
   toggle() {
     this.enabled = !this.enabled;
 
-    // 1. Control Master Gain volume (0.0 = Mute, 1.0 = Full volume)
-    if (this.masterGain && this.audioContext) {
-      try {
-        const now = this.audioContext.currentTime;
-        this.masterGain.gain.cancelScheduledValues(now);
-        this.masterGain.gain.setValueAtTime(this.enabled ? 1.0 : 0.0, now);
-      } catch (e) {
-        console.warn('Gain adjustment error:', e);
-      }
+    // Ensure hook is active
+    const node = window.Module?.SDL2?.audio?.scriptProcessorNode;
+    if (node && node !== this.hookedNode) {
+      this.hookScriptProcessor(node);
     }
 
-    // 2. Suspend / resume AudioContext to save CPU on TV
-    const ctx = this.audioContext || window.Module?.SDL2?.audioContext;
-    if (ctx) {
-      try {
-        if (!this.enabled) {
-          ctx.suspend().catch(() => {});
-        } else {
-          ctx.resume().catch(() => {});
-        }
-      } catch (e) {
-        console.warn('AudioContext state error:', e);
-      }
-    }
-
-    if (window.Module?.SDL2?.audioContext && window.Module.SDL2.audioContext !== ctx) {
-      try {
-        if (!this.enabled) {
-          window.Module.SDL2.audioContext.suspend().catch(() => {});
-        } else {
-          window.Module.SDL2.audioContext.resume().catch(() => {});
-        }
-      } catch (e) {}
-    }
-
+    this.applyMuteState();
     return this.enabled;
   }
 }
