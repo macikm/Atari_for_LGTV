@@ -113,33 +113,94 @@ class AtariStorage {
 }
 
 // ============================================================================
-// 2. Web Audio & Sound Helper
+// 2. Web Audio & Sound Helper with Master Mute Control for Wasm SDL2
 // ============================================================================
 
 class AtariAudioEngine {
   constructor() {
-    this.ctx = null;
+    this.audioContext = null;
+    this.masterGain = null;
     this.enabled = true;
+    this.interceptAudioContext();
+  }
+
+  interceptAudioContext() {
+    const self = this;
+    const OriginalAudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!OriginalAudioContext) return;
+
+    // Wrap AudioContext so any audio stream created by Wasm/SDL2 flows through Master Gain
+    window.AudioContext = class extends OriginalAudioContext {
+      constructor(...args) {
+        super(...args);
+        self.audioContext = this;
+        self.masterGain = this.createGain();
+        self.masterGain.gain.setValueAtTime(self.enabled ? 1.0 : 0.0, this.currentTime);
+        self.masterGain.connect(super.destination);
+
+        // Redirect destination property so any node connecting to destination connects via masterGain
+        Object.defineProperty(this, 'destination', {
+          get: () => self.masterGain,
+          configurable: true
+        });
+      }
+    };
+    if (window.webkitAudioContext) {
+      window.webkitAudioContext = window.AudioContext;
+    }
   }
 
   init() {
-    if (this.ctx) return;
-    try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      this.ctx = new AudioContext();
-    } catch (e) {
-      console.warn('Web Audio init issue:', e);
+    if (this.audioContext && this.audioContext.state === 'suspended' && this.enabled) {
+      this.audioContext.resume().catch(() => {});
+    }
+    if (window.Module?.SDL2?.audioContext && window.Module.SDL2.audioContext.state === 'suspended' && this.enabled) {
+      window.Module.SDL2.audioContext.resume().catch(() => {});
     }
   }
 
   resume() {
-    if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
-    }
+    this.init();
   }
 
   toggle() {
     this.enabled = !this.enabled;
+
+    // 1. Control Master Gain volume (0.0 = Mute, 1.0 = Full volume)
+    if (this.masterGain && this.audioContext) {
+      try {
+        const now = this.audioContext.currentTime;
+        this.masterGain.gain.cancelScheduledValues(now);
+        this.masterGain.gain.setValueAtTime(this.enabled ? 1.0 : 0.0, now);
+      } catch (e) {
+        console.warn('Gain adjustment error:', e);
+      }
+    }
+
+    // 2. Suspend / resume AudioContext to save CPU on TV
+    const ctx = this.audioContext || window.Module?.SDL2?.audioContext;
+    if (ctx) {
+      try {
+        if (!this.enabled) {
+          ctx.suspend().catch(() => {});
+        } else {
+          ctx.resume().catch(() => {});
+        }
+      } catch (e) {
+        console.warn('AudioContext state error:', e);
+      }
+    }
+
+    if (window.Module?.SDL2?.audioContext && window.Module.SDL2.audioContext !== ctx) {
+      try {
+        if (!this.enabled) {
+          window.Module.SDL2.audioContext.suspend().catch(() => {});
+        } else {
+          window.Module.SDL2.audioContext.resume().catch(() => {});
+        }
+      } catch (e) {}
+    }
+
     return this.enabled;
   }
 }
