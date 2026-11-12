@@ -7,15 +7,15 @@
   "title": "AtariWebOS",
   "icon": "icon.png",
   "largeIcon": "largeIcon.png",
-  "splashBackground": "#05070b",
+  "bgColor": "#05070b",
   "resolution": "1920x1080",
   "supportGpu": true,
   "handlesRelaunch": true,
   "disableBackHistoryAPI": true,
   "cursor": true,
   "requiredVersion": "3.0.0",
+  "requiredACG": [],
   "accessibility": {
     "supportsAudioGuidance": false
   }
 }
-

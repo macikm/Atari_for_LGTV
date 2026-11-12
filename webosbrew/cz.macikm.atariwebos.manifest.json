@@ -1,0 +1,13 @@
+{
+  "id": "cz.macikm.atariwebos",
+  "version": "1.0.0",
+  "type": "web",
+  "title": "AtariWebOS",
+  "appDescription": "Atari 800/XE standalone emulator for LG webOS TV",
+  "iconUri": "https://raw.githubusercontent.com/macikm/Atari_for_LGTV/main/webos/largeIcon.png",
+  "sourceUrl": "https://github.com/macikm/Atari_for_LGTV",
+  "ipkUrl": "https://github.com/macikm/Atari_for_LGTV/releases/latest/download/cz.macikm.atariwebos_1.0.0_all.ipk",
+  "ipkHash": {
+    "sha256": ""
+  }
+}

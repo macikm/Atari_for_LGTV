@@ -34,7 +34,7 @@ jobs:
       - name: Zabalení IPK balíčku
         run: |
           mkdir -p output
-          npx ares-package dist -o output
+          npx -p @webos-tools/cli ares-package dist -o output
 
       - name: Uložení IPK jako GitHub Actions Artifact
         uses: actions/upload-artifact@v4

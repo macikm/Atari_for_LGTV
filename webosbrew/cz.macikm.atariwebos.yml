@@ -1,0 +1,9 @@
+title: AtariWebOS
+iconUri: https://raw.githubusercontent.com/macikm/Atari_for_LGTV/main/webos/largeIcon.png
+manifestUrl: https://raw.githubusercontent.com/macikm/Atari_for_LGTV/main/webosbrew/cz.macikm.atariwebos.manifest.json
+category: games
+pool: main
+description: |
+  Standalone open-source Atari 800 / 800XL / 130XE emulator for LG webOS TV.
+  Features 60 FPS Canvas emulation, full Atari BASIC (Rev C), POKEY audio,
+  local disk storage (IndexedDB), and remote WiFi file uploading from mobile/PC.

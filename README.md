@@ -3,10 +3,19 @@
 [![License: GPL v2+](https://img.shields.io/badge/License-GPL%20v2%2B-blue.svg)](https://www.gnu.org/licenses/gpl-2.0)
 [![Platform: LG webOS](https://img.shields.io/badge/Platform-LG%20webOS%203.0+-red.svg)](https://webostv.developer.lge.com/)
 [![WebAssembly & Canvas](https://img.shields.io/badge/Tech-WebAssembly%20%7C%20Canvas%2060FPS-orange.svg)](https://developer.mozilla.org/)
+[![Buy Me A Pizza](https://img.shields.io/badge/Donate-Koupit%20pizzu%20🍕-orange.svg)](https://buymeacoffee.com/martinmacko)
 
 **AtariWebOS** je open-source standalone webová aplikace a emulátor legendárních 8bitových počítačů **Atari 800 / 800XL / 130XE**, navržená speciálně pro chytré televize **LG Smart TV (webOS)** i pro moderní webové prohlížeče.
 
 Běží na plnohodnotném WebAssembly jádře s reálnou emulací procesoru MOS 6502 a čipů ANTIC/GTIA/POKEY, díky čemuž nabízí autentický běh her i originálního Atari BASICu.
+
+---
+
+## 🍕 Podpořte vývoj
+
+Líbí se vám AtariWebOS a chcete podpořit další rozvoj, přidávání nových funkcí a vylepšení pro televize LG?
+
+👉 **[Koupit autorovi pizzu na BuyMeACoffee.com](https://buymeacoffee.com/martinmacko)**
 
 ---
 
@@ -18,8 +27,8 @@ Běží na plnohodnotném WebAssembly jádře s reálnou emulací procesoru MOS 
 - **Trvalé úložiště her v paměti TV (IndexedDB):** Ukládání a správa disket a her přímo v paměti televize bez nutnosti opakovaného stahování.
 - **Podpora formátů:** `.ATR` (disketové obrazy), `.XEX` (spustitelné binární soubory), `.CAR` / `.ROM` (cartridge moduly), `.CAS` (kazety).
 - **Companion Web UI (QR kód):** Okamžité bezdrátové nahrávání her z mobilního telefonu nebo PC po domácí Wi-Fi síti přímo do televize.
-- **Chytré mapování klávesnice & podpora ovladače:**
-  - Ochrana proti nechtěné navigaci Zpět v prohlížeči (klávesa Backspace funguje jako pravý Atari `DELETE BACK S`).
+- **Chytré mapování klávesnice & ochrana navigace:**
+  - Klávesa <kbd>Backspace</kbd> funguje jako pravý Atari `DELETE BACK S` bez nežádoucího zčernání či opuštění stránky.
   - Konzolové klávesy Atari: **F2** (OPTION), **F3** (SELECT), **F4** (START), **F5** (RESET).
   - Podpora kurzoru a dálkového ovladače LG Magic Remote.
 
@@ -59,8 +68,6 @@ Pokud hrajete čistě akční arkádu a chcete ovládat pohyb levou rukou na kl�
 
 ## 📺 Instalace na LG Smart TV (webOS)
 
-Instalace je přizpůsobena stejnému postupu jako u projektu [MyTUYA Smart Dashboard](https://github.com/macikm/mytuya-releases):
-
 👉 **[Kompletní návod k instalaci na LG webOS krok za krokem (INSTALL-WEBOS.md)](INSTALL-WEBOS.md)**
 
 Stručný přehled:
@@ -69,15 +76,31 @@ Stručný přehled:
 3. V záložce **Apps** klikněte na **Install** a vyberte balíček `.ipk`.
 
 ### Jak získat balíček `.ipk`:
-- **Z GitHub Actions (bez nutnosti instalovat CLI do počítače):**
+- **Z GitHub Actions (automatické sestavení v cloudu):**
   1. V repozitáři přejděte do záložky **Actions**.
   2. V levém sloupci vyberte **Build LG webOS IPK Package**.
   3. Klikněte na rozbalovací nabídku **Run workflow** a potvrďte zeleným tlačítkem **Run workflow**.
-  4. Po dokončení (cca 1 minuta) rozklikněte proběhlou akci a dole v části **Artifacts** stáhněte archiv obsahující hotový `.ipk`.
+  4. Po dokončení (cca 30 sekund) rozklikněte proběhlou akci a dole v části **Artifacts** stáhněte archiv obsahující hotový `.ipk`.
 - **Lokální sestavení (pokud máte Node.js):**
   ```bash
   npm run package:webos
   ```
+
+---
+
+## 🏪 Publikace do webOS Homebrew Channel
+
+Pokud máte televizi LG s nainstalovaným **[Homebrew Channel](https://github.com/webosbrew/webos-homebrew-channel)** (komunitní obchod aplikací pro webOS), můžete aplikaci do tohoto katalogu zařadit, aby si ji mohl kdokoliv nainstalovat jedním kliknutím přímo z obrazovky TV:
+
+1. **Vytvořte GitHub Release:** V repozitáři vytvořte nový Release (např. tag `v1.0.0`) a přiložte soubor `cz.macikm.atariwebos_1.0.0_all.ipk`.
+2. **Připravené soubory v repozitáři:** V adresáři `webosbrew/` máte předchystaný balíček:
+   - `webosbrew/cz.macikm.atariwebos.yml` – definiční záznam aplikace.
+   - `webosbrew/cz.macikm.atariwebos.manifest.json` – manifest s odkazem na stažení `.ipk`.
+3. **Odeslání do oficiálního repozitáře Homebrew:**
+   - Otevřete repozitář katalogu **[webosbrew/apps-repo](https://github.com/webosbrew/apps-repo)**.
+   - Vytvořte fork a do složky `packages/` vložte soubor `cz.macikm.atariwebos.yml`.
+   - Vytvořte Pull Request do `webosbrew/apps-repo`.
+   - Po schválení správci se AtariWebOS automaticky zobrazí v katalogu Homebrew Channelu na všech LG televizích po celém světě!
 
 ---
 
@@ -101,7 +124,6 @@ Tento projekt staví na skvělé práci retro a open-source komunity:
 - **Operační systém a BASIC:** 
   - Originální ROM soubory počítačů Atari XL/XE: **Atari XL/XE OS Rev. 2** (16 KB) a **Atari BASIC Rev. C** (8 KB).
   - Projekt plně podporuje též svobodný [AltirraOS a Altirra BASIC](http://www.virtualdub.org/altirra.html) (autor Avery Lee).
-- **WebOS integrace a workflow:** Postup instalace a struktura distribuce jsou inspirovány projekty [mytuya-releases](https://github.com/macikm/mytuya-releases) a [webOS Homebrew / webOS Dev Manager](https://github.com/webosbrew/dev-manager-desktop).
 
 ---
 
