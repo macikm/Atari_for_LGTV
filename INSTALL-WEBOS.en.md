@@ -70,3 +70,4 @@ LG limits the Developer Mode session duration (typically 50–1000 hours).
 ---
 
 [Official LG Developer Mode Documentation](https://webostv.developer.lge.com/develop/getting-started/developer-mode-app)
+

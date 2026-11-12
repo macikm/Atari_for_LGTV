@@ -3,12 +3,20 @@ name: Build LG webOS IPK Package
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Verze balíčku (např. 1.0.0)'
+      create_release:
+        description: 'Vytvořit / aktualizovat GitHub Release?'
+        type: boolean
         required: false
-        default: '1.0.0'
+        default: true
+      tag_name:
+        description: 'Název verze (např. v1.0.0)'
+        required: false
+        default: 'v1.0.0'
   release:
     types: [published]
+
+permissions:
+  contents: write
 
 jobs:
   build-ipk:
@@ -43,9 +51,15 @@ jobs:
           path: output/*.ipk
           if-no-files-found: error
 
-      - name: Nahrání do GitHub Release (pokud je spuštěno z Release)
-        if: github.event_name == 'release'
+      - name: Publikace IPK do GitHub Releases
+        if: github.event_name == 'release' || inputs.create_release == true
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ inputs.tag_name || github.ref_name || 'v1.0.0' }}
+          name: AtariWebOS ${{ inputs.tag_name || 'v1.0.0' }}
           files: output/*.ipk
-
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
