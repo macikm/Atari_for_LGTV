@@ -79,3 +79,4 @@ Vývojářský režim na LG TV má z bezpečnostních důvodů výrobce časově
 ---
 
 [Oficiální dokumentace LG Developer Mode](https://webostv.developer.lge.com/develop/getting-started/developer-mode-app)
+

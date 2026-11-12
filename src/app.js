@@ -405,13 +405,35 @@ class AtariApp {
   // Physical Keyboard Handling
   // ==========================================================================
   setupKeyboardEvents() {
+    // Prevent back navigation from destroying the WebAssembly canvas context
+    window.history.pushState(null, '', window.location.href);
+    window.addEventListener('popstate', () => {
+      window.history.pushState(null, '', window.location.href);
+    });
+
     window.addEventListener('keydown', (e) => {
       // First interaction activates Web Audio Context if suspended
       this.audio.init();
 
-      // Ensure canvas has focus for Emscripten SDL input
-      if (document.activeElement !== this.canvas && !['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
-        this.canvas.focus();
+      const isInput = ['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName);
+
+      // Prevent destructive browser defaults (Backspace navigating back, Tab stealing focus, F1 help, F5 refresh)
+      if (!isInput) {
+        if (
+          e.key === 'Backspace' ||
+          e.code === 'Backspace' ||
+          e.keyCode === 8 ||
+          e.key === 'Tab' ||
+          e.code === 'Tab' ||
+          (typeof e.key === 'string' && e.key.startsWith('F'))
+        ) {
+          e.preventDefault();
+        }
+
+        // Ensure canvas keeps focus for Atari Emscripten SDL input
+        if (document.activeElement !== this.canvas) {
+          this.canvas.focus();
+        }
       }
 
       // Quick Console buttons feedback
@@ -423,6 +445,22 @@ class AtariApp {
         this.flashNotice('START pressed');
       } else if (e.key === 'F5') {
         this.flashNotice('RESET pressed');
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      const isInput = ['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName);
+      if (!isInput) {
+        if (
+          e.key === 'Backspace' ||
+          e.code === 'Backspace' ||
+          e.keyCode === 8 ||
+          e.key === 'Tab' ||
+          e.code === 'Tab' ||
+          (typeof e.key === 'string' && e.key.startsWith('F'))
+        ) {
+          e.preventDefault();
+        }
       }
     });
   }
