@@ -562,6 +562,69 @@ class AtariApp {
       window.history.pushState(null, '', window.location.href);
     });
 
+    // Hidden textarea sink to receive native browser paste cleanly without SDL2 blocking it
+    let pasteSink = document.getElementById('clipboardPasteSink');
+    if (!pasteSink) {
+      pasteSink = document.createElement('textarea');
+      pasteSink.id = 'clipboardPasteSink';
+      pasteSink.setAttribute('aria-hidden', 'true');
+      pasteSink.tabIndex = -1;
+      pasteSink.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;';
+      document.body.appendChild(pasteSink);
+    }
+
+    const triggerPasteWithText = (text) => {
+      if (!text) return;
+      this.wasmCore.pasteText(
+        text,
+        (percent) => this.flashNotice(t('paste_progress', { percent })),
+        (completed) => {
+          if (completed) {
+            this.flashNotice(t('paste_done'));
+          }
+        }
+      );
+    };
+
+    // Capture-phase keydown intercepts Ctrl+V / Cmd+V / Shift+Insert BEFORE Emscripten SDL2 calls preventDefault()
+    let pasteHandledAt = 0;
+    window.addEventListener('keydown', (e) => {
+      const active = document.activeElement;
+      const isUserInput = active && active !== pasteSink && ['INPUT', 'SELECT', 'TEXTAREA'].includes(active.tagName);
+      if (isUserInput) return;
+
+      const isCtrlV = (e.ctrlKey || e.metaKey) && !e.altKey && (e.code === 'KeyV' || (typeof e.key === 'string' && e.key.toLowerCase() === 'v'));
+      const isShiftIns = e.shiftKey && !e.ctrlKey && !e.altKey && (e.code === 'Insert' || e.key === 'Insert');
+
+      if (isCtrlV || isShiftIns) {
+        // Stop SDL2 from seeing Ctrl+V / Shift+Insert and calling preventDefault(),
+        // while letting the browser execute native paste into pasteSink
+        e.stopImmediatePropagation();
+        pasteSink.value = '';
+        pasteSink.focus({ preventScroll: true });
+
+        const mark = Date.now();
+        setTimeout(async () => {
+          // Fallback if browser didn't fire 'paste' event (e.g. Shift+Insert on some platforms)
+          if (pasteHandledAt >= mark) return;
+          let fallbackText = pasteSink.value;
+          pasteSink.value = '';
+          if (this.canvas && document.activeElement === pasteSink) {
+            this.canvas.focus({ preventScroll: true });
+          }
+          if (!fallbackText && navigator.clipboard && navigator.clipboard.readText) {
+            try {
+              fallbackText = await navigator.clipboard.readText();
+            } catch (_) {}
+          }
+          if (fallbackText) {
+            pasteHandledAt = Date.now();
+            triggerPasteWithText(fallbackText);
+          }
+        }, 40);
+      }
+    }, true);
+
     window.addEventListener('keydown', (e) => {
       // First interaction activates Web Audio Context if suspended
       this.audio.init();
@@ -574,7 +637,8 @@ class AtariApp {
         return;
       }
 
-      const isInput = ['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName);
+      const active = document.activeElement;
+      const isInput = active && active !== pasteSink && ['INPUT', 'SELECT', 'TEXTAREA'].includes(active.tagName);
 
       // Prevent destructive browser defaults (Backspace navigating back, Tab stealing focus, F1 help, F5 refresh)
       if (!isInput) {
@@ -590,7 +654,7 @@ class AtariApp {
         }
 
         // Ensure canvas keeps focus for Atari Emscripten SDL input
-        if (document.activeElement !== this.canvas) {
+        if (document.activeElement !== this.canvas && document.activeElement !== pasteSink) {
           this.canvas.focus();
         }
       }
@@ -608,7 +672,8 @@ class AtariApp {
     });
 
     window.addEventListener('keyup', (e) => {
-      const isInput = ['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName);
+      const active = document.activeElement;
+      const isInput = active && active !== pasteSink && ['INPUT', 'SELECT', 'TEXTAREA'].includes(active.tagName);
       if (!isInput) {
         if (
           e.key === 'Backspace' ||
@@ -623,25 +688,23 @@ class AtariApp {
       }
     });
 
-    // Clipboard Paste (Ctrl+V) into Atari BASIC / Emulator
+    // Clipboard Paste (Ctrl+V / Shift+Insert) into Atari BASIC / Emulator
     window.addEventListener('paste', (e) => {
-      const isInput = ['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName);
-      if (isInput) return;
+      const active = document.activeElement;
+      const isUserInput = active && active !== pasteSink && ['INPUT', 'SELECT', 'TEXTAREA'].includes(active.tagName);
+      if (isUserInput) return;
 
-      const text = e.clipboardData?.getData('text/plain');
+      const text = e.clipboardData?.getData('text/plain') || pasteSink.value;
+      pasteSink.value = '';
+      if (this.canvas) {
+        this.canvas.focus({ preventScroll: true });
+      }
       if (!text) return;
 
       e.preventDefault();
-      this.wasmCore.pasteText(
-        text,
-        (percent) => this.flashNotice(t('paste_progress', { percent })),
-        (completed) => {
-          if (completed) {
-            this.flashNotice(t('paste_done'));
-          }
-        }
-      );
-    });
+      pasteHandledAt = Date.now();
+      triggerPasteWithText(text);
+    }, true);
   }
 
   // ==========================================================================
