@@ -412,7 +412,7 @@ class AtariWasmCore {
       { key: 'Shift', code: 'ShiftLeft', keyCode: 16 },
       { key: 'Shift', code: 'ShiftRight', keyCode: 16 }
     ].forEach((mod) => this._dispatchKey('keyup', mod));
-    await wait(80);
+    await wait(120);
 
     for (let i = 0; i < chars.length; i++) {
       if (state.cancelled) {
@@ -423,14 +423,14 @@ class AtariWasmCore {
       const spec = this._mapCharToKeySpec(chars[i]);
       this._dispatchKey('keydown', spec);
       if (!spec.isEnter) {
-        await wait(12);
+        await wait(15);
         this._dispatchKey('keypress', spec);
       }
-      await wait(26);
+      await wait(40);
       this._dispatchKey('keyup', spec);
 
-      // Pause longer after Enter so Atari BASIC can tokenize and store the line
-      await wait(spec.isEnter ? 120 : 28);
+      // Wait ~2-3 PAL frames (55ms) so Atari OS registers key release, longer after Enter
+      await wait(spec.isEnter ? 180 : 55);
 
       if (onProgress && (i % 15 === 0 || i === chars.length - 1)) {
         const percent = Math.round(((i + 1) / chars.length) * 100);
