@@ -647,15 +647,17 @@ class AtariApp {
       const active = document.activeElement;
       const isInput = active && active !== pasteSink && ['INPUT', 'SELECT', 'TEXTAREA'].includes(active.tagName);
 
-      // Prevent destructive browser defaults (Backspace navigating back, Tab stealing focus, F1 help, F5 refresh)
+      // Prevent destructive browser defaults (Backspace navigating back, Tab stealing focus, F1-F11 keys),
+      // but allow browser shortcuts like Ctrl+F5 (hard reload) and F12 (DevTools).
       if (!isInput) {
+        const isFunctionKey = typeof e.key === 'string' && /^F([1-9]|10|11)$/.test(e.key) && !e.ctrlKey && !e.metaKey;
         if (
           e.key === 'Backspace' ||
           e.code === 'Backspace' ||
           e.keyCode === 8 ||
           e.key === 'Tab' ||
           e.code === 'Tab' ||
-          (typeof e.key === 'string' && e.key.startsWith('F'))
+          isFunctionKey
         ) {
           e.preventDefault();
         }
@@ -682,13 +684,14 @@ class AtariApp {
       const active = document.activeElement;
       const isInput = active && active !== pasteSink && ['INPUT', 'SELECT', 'TEXTAREA'].includes(active.tagName);
       if (!isInput) {
+        const isFunctionKey = typeof e.key === 'string' && /^F([1-9]|10|11)$/.test(e.key) && !e.ctrlKey && !e.metaKey;
         if (
           e.key === 'Backspace' ||
           e.code === 'Backspace' ||
           e.keyCode === 8 ||
           e.key === 'Tab' ||
           e.code === 'Tab' ||
-          (typeof e.key === 'string' && e.key.startsWith('F'))
+          isFunctionKey
         ) {
           e.preventDefault();
         }
