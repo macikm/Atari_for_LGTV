@@ -286,6 +286,154 @@ class AtariWasmCore {
       window.dispatchEvent(eventUp);
     }, 120);
   }
+
+  _mapCharToKeySpec(ch) {
+    if (ch === '\n') {
+      return { key: 'Enter', code: 'Enter', keyCode: 13, charCode: 13, shiftKey: false, isEnter: true };
+    }
+    if (ch === ' ') {
+      return { key: ' ', code: 'Space', keyCode: 32, charCode: 32, shiftKey: false };
+    }
+    if (ch >= 'a' && ch <= 'z') {
+      const upper = ch.toUpperCase();
+      return { key: ch, code: 'Key' + upper, keyCode: upper.charCodeAt(0), charCode: ch.charCodeAt(0), shiftKey: false };
+    }
+    if (ch >= 'A' && ch <= 'Z') {
+      return { key: ch, code: 'Key' + ch, keyCode: ch.charCodeAt(0), charCode: ch.charCodeAt(0), shiftKey: true };
+    }
+    if (ch >= '0' && ch <= '9') {
+      return { key: ch, code: 'Digit' + ch, keyCode: ch.charCodeAt(0), charCode: ch.charCodeAt(0), shiftKey: false };
+    }
+
+    const punctuationMap = {
+      '!': { code: 'Digit1', keyCode: 49, shiftKey: true },
+      '@': { code: 'Digit2', keyCode: 50, shiftKey: true },
+      '#': { code: 'Digit3', keyCode: 51, shiftKey: true },
+      '$': { code: 'Digit4', keyCode: 52, shiftKey: true },
+      '%': { code: 'Digit5', keyCode: 53, shiftKey: true },
+      '^': { code: 'Digit6', keyCode: 54, shiftKey: true },
+      '&': { code: 'Digit7', keyCode: 55, shiftKey: true },
+      '*': { code: 'Digit8', keyCode: 56, shiftKey: true },
+      '(': { code: 'Digit9', keyCode: 57, shiftKey: true },
+      ')': { code: 'Digit0', keyCode: 48, shiftKey: true },
+      '-': { code: 'Minus', keyCode: 189, shiftKey: false },
+      '_': { code: 'Minus', keyCode: 189, shiftKey: true },
+      '=': { code: 'Equal', keyCode: 187, shiftKey: false },
+      '+': { code: 'Equal', keyCode: 187, shiftKey: true },
+      '[': { code: 'BracketLeft', keyCode: 219, shiftKey: false },
+      '{': { code: 'BracketLeft', keyCode: 219, shiftKey: true },
+      ']': { code: 'BracketRight', keyCode: 221, shiftKey: false },
+      '}': { code: 'BracketRight', keyCode: 221, shiftKey: true },
+      '\\': { code: 'Backslash', keyCode: 220, shiftKey: false },
+      '|': { code: 'Backslash', keyCode: 220, shiftKey: true },
+      ';': { code: 'Semicolon', keyCode: 186, shiftKey: false },
+      ':': { code: 'Semicolon', keyCode: 186, shiftKey: true },
+      "'": { code: 'Quote', keyCode: 222, shiftKey: false },
+      '"': { code: 'Quote', keyCode: 222, shiftKey: true },
+      ',': { code: 'Comma', keyCode: 188, shiftKey: false },
+      '<': { code: 'Comma', keyCode: 188, shiftKey: true },
+      '.': { code: 'Period', keyCode: 190, shiftKey: false },
+      '>': { code: 'Period', keyCode: 190, shiftKey: true },
+      '/': { code: 'Slash', keyCode: 191, shiftKey: false },
+      '?': { code: 'Slash', keyCode: 191, shiftKey: true },
+      '`': { code: 'Backquote', keyCode: 192, shiftKey: false },
+      '~': { code: 'Backquote', keyCode: 192, shiftKey: true }
+    };
+
+    const mapped = punctuationMap[ch];
+    if (mapped) {
+      return {
+        key: ch,
+        code: mapped.code,
+        keyCode: mapped.keyCode,
+        charCode: ch.charCodeAt(0),
+        shiftKey: mapped.shiftKey
+      };
+    }
+
+    return {
+      key: ch,
+      code: '',
+      keyCode: ch.charCodeAt(0),
+      charCode: ch.charCodeAt(0),
+      shiftKey: false
+    };
+  }
+
+  _dispatchKey(type, spec) {
+    const target = this.canvas || window;
+    const evt = new KeyboardEvent(type, {
+      key: spec.key,
+      code: spec.code,
+      keyCode: spec.keyCode,
+      which: spec.keyCode,
+      charCode: type === 'keypress' ? spec.charCode : 0,
+      shiftKey: !!spec.shiftKey,
+      bubbles: true,
+      cancelable: true
+    });
+    target.dispatchEvent(evt);
+  }
+
+  cancelPaste() {
+    if (this._pasteState) {
+      this._pasteState.cancelled = true;
+    }
+  }
+
+  isPasting() {
+    return !!(this._pasteState && !this._pasteState.cancelled);
+  }
+
+  async pasteText(rawText, onProgress, onDone) {
+    if (!rawText || !this.canvas) return;
+    this.cancelPaste();
+    this.canvas.focus();
+
+    const normalized = rawText
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .replace(/[„“”]/g, '"')
+      .replace(/[‚‘’]/g, "'")
+      .replace(/[–—]/g, '-')
+      .replace(/\t/g, ' ');
+
+    const chars = Array.from(normalized);
+    if (chars.length === 0) return;
+
+    const state = { cancelled: false };
+    this._pasteState = state;
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    for (let i = 0; i < chars.length; i++) {
+      if (state.cancelled) {
+        if (onDone) onDone(false);
+        return;
+      }
+
+      const spec = this._mapCharToKeySpec(chars[i]);
+      this._dispatchKey('keydown', spec);
+      if (!spec.isEnter) {
+        await wait(8);
+        this._dispatchKey('keypress', spec);
+      }
+      await wait(14);
+      this._dispatchKey('keyup', spec);
+
+      // Pause longer after Enter so Atari BASIC can tokenize and store the line
+      await wait(spec.isEnter ? 95 : 26);
+
+      if (onProgress && (i % 15 === 0 || i === chars.length - 1)) {
+        const percent = Math.round(((i + 1) / chars.length) * 100);
+        onProgress(percent);
+      }
+    }
+
+    if (this._pasteState === state) {
+      this._pasteState = null;
+    }
+    if (onDone) onDone(true);
+  }
 }
 
 // ============================================================================
@@ -418,6 +566,14 @@ class AtariApp {
       // First interaction activates Web Audio Context if suspended
       this.audio.init();
 
+      // Cancel active clipboard paste on Escape
+      if (e.key === 'Escape' && this.wasmCore.isPasting()) {
+        e.preventDefault();
+        this.wasmCore.cancelPaste();
+        this.flashNotice(t('paste_cancelled'));
+        return;
+      }
+
       const isInput = ['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName);
 
       // Prevent destructive browser defaults (Backspace navigating back, Tab stealing focus, F1 help, F5 refresh)
@@ -465,6 +621,26 @@ class AtariApp {
           e.preventDefault();
         }
       }
+    });
+
+    // Clipboard Paste (Ctrl+V) into Atari BASIC / Emulator
+    window.addEventListener('paste', (e) => {
+      const isInput = ['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName);
+      if (isInput) return;
+
+      const text = e.clipboardData?.getData('text/plain');
+      if (!text) return;
+
+      e.preventDefault();
+      this.wasmCore.pasteText(
+        text,
+        (percent) => this.flashNotice(t('paste_progress', { percent })),
+        (completed) => {
+          if (completed) {
+            this.flashNotice(t('paste_done'));
+          }
+        }
+      );
     });
   }
 

@@ -90,7 +90,10 @@ const TRANSLATIONS = {
     notice_running: "Spuštěno: ",
     notice_cleared: "Paměť TV byla vymazána",
     notice_wasd: "Aktivován herní režim (WASD = Joystick)",
-    notice_basic: "Aktivován režim BASIC (plná klávesnice)"
+    notice_basic: "Aktivován režim BASIC (plná klávesnice)",
+    paste_progress: "📋 Vkládám do BASICu ({percent}%) – ESC pro zrušení",
+    paste_done: "✅ Vložení textu dokončeno",
+    paste_cancelled: "⏹ Vkládání zrušeno"
   },
 
   sk: {
@@ -172,7 +175,10 @@ const TRANSLATIONS = {
     notice_running: "Spustené: ",
     notice_cleared: "Pamäť TV bola vymazaná",
     notice_wasd: "Aktivovaný herný režim (WASD = Joystick)",
-    notice_basic: "Aktivovaný režim BASIC (plná klávesnica)"
+    notice_basic: "Aktivovaný režim BASIC (plná klávesnica)",
+    paste_progress: "📋 Vkladám do BASICu ({percent}%) – ESC pre zrušenie",
+    paste_done: "✅ Vloženie textu dokončené",
+    paste_cancelled: "⏹ Vkladanie zrušené"
   },
 
   en: {
@@ -254,7 +260,10 @@ const TRANSLATIONS = {
     notice_running: "Running: ",
     notice_cleared: "TV memory cleared",
     notice_wasd: "Game Mode active (WASD = Joystick)",
-    notice_basic: "BASIC Mode active (Full Keyboard)"
+    notice_basic: "BASIC Mode active (Full Keyboard)",
+    paste_progress: "📋 Pasting to BASIC ({percent}%) – ESC to cancel",
+    paste_done: "✅ Paste completed",
+    paste_cancelled: "⏹ Paste cancelled"
   },
 
   de: {
@@ -336,7 +345,10 @@ const TRANSLATIONS = {
     notice_running: "Gestartet: ",
     notice_cleared: "TV-Speicher geleert",
     notice_wasd: "Gaming-Modus aktiv (WASD = Joystick)",
-    notice_basic: "BASIC-Modus aktiv (Volle Tastatur)"
+    notice_basic: "BASIC-Modus aktiv (Volle Tastatur)",
+    paste_progress: "📋 Einfügen in BASIC ({percent}%) – ESC zum Abbrechen",
+    paste_done: "✅ Einfügen abgeschlossen",
+    paste_cancelled: "⏹ Einfügen abgebrochen"
   },
 
   es: {
@@ -418,7 +430,10 @@ const TRANSLATIONS = {
     notice_running: "Ejecutando: ",
     notice_cleared: "Memoria de la TV borrada",
     notice_wasd: "Modo juego activado (WASD = Joystick)",
-    notice_basic: "Modo BASIC activado (Teclado completo)"
+    notice_basic: "Modo BASIC activado (Teclado completo)",
+    paste_progress: "📋 Pegando en BASIC ({percent}%) – ESC para cancelar",
+    paste_done: "✅ Pegado completado",
+    paste_cancelled: "⏹ Pegado cancelado"
   },
 
   it: {
@@ -500,7 +515,10 @@ const TRANSLATIONS = {
     notice_running: "Avviato: ",
     notice_cleared: "Memoria TV cancellata",
     notice_wasd: "Modalità gioco attiva (WASD = Joystick)",
-    notice_basic: "Modalità BASIC attiva (Tastiera completa)"
+    notice_basic: "Modalità BASIC attiva (Tastiera completa)",
+    paste_progress: "📋 Incolla in BASIC ({percent}%) – ESC per annullare",
+    paste_done: "✅ Incolla completato",
+    paste_cancelled: "⏹ Operazione annullata"
   }
 };
 
