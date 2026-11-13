@@ -4707,20 +4707,8 @@ globalThis.runAtari800Wasm = function(Module) {
   var _emscripten_get_element_css_size = (target, width, height) => {
     target = findEventTarget(target);
     if (!target) return -4;
-    var rect = getBoundingClientRect(target);
-    var w = rect.width;
-    var h = rect.height;
-    if ((w < 336 || h < 240) && target.parentElement && target.parentElement.getBoundingClientRect) {
-      var pRect = target.parentElement.getBoundingClientRect();
-      if (pRect.width >= 336 && pRect.height >= 240) {
-        w = pRect.width;
-        h = pRect.height;
-      }
-    }
-    if (w < 336) w = 800;
-    if (h < 240) h = 600;
-    HEAPF64[width >> 3] = w;
-    HEAPF64[height >> 3] = h;
+    HEAPF64[width >> 3] = 336;
+    HEAPF64[height >> 3] = 240;
     return 0;
   };
   var fillGamepadEventData = (eventStruct, e) => {
@@ -4757,8 +4745,8 @@ globalThis.runAtari800Wasm = function(Module) {
   };
   var _emscripten_get_num_gamepads = () => JSEvents.lastGamepadState ? JSEvents.lastGamepadState.length : 0;
   var _emscripten_get_screen_size = (width, height) => {
-    HEAP32[width >> 2] = screen.width;
-    HEAP32[height >> 2] = screen.height;
+    HEAP32[width >> 2] = 336;
+    HEAP32[height >> 2] = 240;
   };
   var _emscripten_glActiveTexture = (x0) => GLctx.activeTexture(x0);
   var _emscripten_glAttachShader = (program, shader) => {
@@ -6154,8 +6142,6 @@ globalThis.runAtari800Wasm = function(Module) {
   var _emscripten_set_element_css_size = (target, width, height) => {
     target = findEventTarget(target);
     if (!target) return -4;
-    target.style.width = width + "px";
-    target.style.height = height + "px";
     return 0;
   };
   var _emscripten_set_focus_callback_on_thread = (target, userData, useCapture, callbackfunc, targetThread) => registerFocusEventCallback(
@@ -6285,30 +6271,69 @@ globalThis.runAtari800Wasm = function(Module) {
   var registerKeyEventCallback = (target, userData, useCapture, callbackfunc, eventTypeId, eventTypeString, targetThread) => {
     var eventSize = 160;
     JSEvents.keyEvent || (JSEvents.keyEvent = _malloc(eventSize));
-    var keyEventHandlerFunc = (e) => {
+    var fireKeyEvent = (e) => {
       var _a2, _b2, _c2, _d2;
       var keyEventData = JSEvents.keyEvent;
-      HEAPF64[keyEventData >> 3] = e.timeStamp;
+      HEAPF64[keyEventData >> 3] = e.timeStamp || 0;
       var idx = keyEventData >> 2;
-      HEAP32[idx + 2] = e.location;
-      HEAP8[keyEventData + 12] = e.ctrlKey;
-      HEAP8[keyEventData + 13] = e.shiftKey;
-      HEAP8[keyEventData + 14] = e.altKey;
-      HEAP8[keyEventData + 15] = e.metaKey;
-      HEAP8[keyEventData + 16] = e.repeat;
-      HEAP32[idx + 5] = e.charCode;
-      HEAP32[idx + 6] = e.keyCode;
-      HEAP32[idx + 7] = e.which;
+      HEAP32[idx + 2] = e.location || 0;
+      HEAP8[keyEventData + 12] = e.ctrlKey ? 1 : 0;
+      HEAP8[keyEventData + 13] = e.shiftKey ? 1 : 0;
+      HEAP8[keyEventData + 14] = e.altKey ? 1 : 0;
+      HEAP8[keyEventData + 15] = e.metaKey ? 1 : 0;
+      HEAP8[keyEventData + 16] = e.repeat ? 1 : 0;
+      HEAP32[idx + 5] = e.charCode || 0;
+      HEAP32[idx + 6] = e.keyCode || 0;
+      HEAP32[idx + 7] = e.which || e.keyCode || 0;
       stringToUTF8((_a2 = e.key) != null ? _a2 : "", keyEventData + 32, 32);
       stringToUTF8((_b2 = e.code) != null ? _b2 : "", keyEventData + 64, 32);
       stringToUTF8((_c2 = e.char) != null ? _c2 : "", keyEventData + 96, 32);
       stringToUTF8((_d2 = e.locale) != null ? _d2 : "", keyEventData + 128, 32);
-      if (((a1, a2, a3) => dynCall_iiii(callbackfunc, a1, a2, a3))(
+      return ((a1, a2, a3) => dynCall_iiii(callbackfunc, a1, a2, a3))(
         eventTypeId,
         keyEventData,
         userData
-      ))
-        e.preventDefault();
+      );
+    };
+    var keyEventHandlerFunc = (e) => {
+      var kId = e.code || e.keyCode || e.key || "k";
+      globalThis._keyDownFrames = globalThis._keyDownFrames || {};
+      var curFrame = globalThis._atariFrameCounter | 0;
+      if (eventTypeId === 2) {
+        globalThis._keyDownFrames[kId] = curFrame;
+      } else if (eventTypeId === 3) {
+        var downFrame = globalThis._keyDownFrames[kId];
+        if (downFrame !== void 0 && curFrame <= downFrame) {
+          var snap = {
+            timeStamp: e.timeStamp,
+            location: e.location,
+            ctrlKey: e.ctrlKey,
+            shiftKey: e.shiftKey,
+            altKey: e.altKey,
+            metaKey: e.metaKey,
+            repeat: e.repeat,
+            charCode: e.charCode,
+            keyCode: e.keyCode,
+            which: e.which,
+            key: e.key,
+            code: e.code,
+            char: e.char,
+            locale: e.locale
+          };
+          globalThis._pendingKeyUps = globalThis._pendingKeyUps || [];
+          globalThis._pendingKeyUps.push({
+            downFrame,
+            fn: function() {
+              fireKeyEvent(snap);
+            }
+          });
+          if (e.preventDefault) e.preventDefault();
+          return;
+        }
+      }
+      if (fireKeyEvent(e)) {
+        if (e.preventDefault) e.preventDefault();
+      }
     };
     var eventHandler = {
       target: findEventTarget(target),
@@ -6728,9 +6753,19 @@ globalThis.runAtari800Wasm = function(Module) {
     }
   };
   var _emscripten_set_window_title = (title) => document.title = UTF8ToString(title);
+  var _lastSleepYield = 0;
   var _emscripten_sleep = function(ms) {
-    let innerFunc = () => new Promise((resolve) => setTimeout(resolve, ms));
-    return Asyncify.handleAsync(innerFunc);
+    return Asyncify.handleSleep(function(wakeUp) {
+      var now = performance.now();
+      if (ms <= 0 && now - _lastSleepYield < 18) {
+        wakeUp(0);
+        return;
+      }
+      setTimeout(function() {
+        _lastSleepYield = performance.now();
+        wakeUp(0);
+      }, ms > 0 ? ms : 0);
+    });
   };
   _emscripten_sleep.isAsync = true;
   var ENV = {};
@@ -7449,6 +7484,21 @@ globalThis.runAtari800Wasm = function(Module) {
         }
       }
       SDL2.ctx.putImageData(SDL2.image, 0, 0);
+      globalThis._atariFrameCounter = (globalThis._atariFrameCounter | 0) + 1;
+      if (globalThis._pendingKeyUps && globalThis._pendingKeyUps.length) {
+        var q = globalThis._pendingKeyUps;
+        for (var qi = 0; qi < q.length; qi++) {
+          if (globalThis._atariFrameCounter > q[qi].downFrame) {
+            var fn = q[qi].fn;
+            q.splice(qi, 1);
+            qi--;
+            try {
+              fn();
+            } catch (_) {
+            }
+          }
+        }
+      }
     },
     369198: ($0, $1, $2, $3, $4) => {
       var w = $0;
@@ -7497,8 +7547,8 @@ globalThis.runAtari800Wasm = function(Module) {
         Module["canvas"].style["cursor"] = "none";
       }
     },
-    370338: () => window.innerWidth,
-    370368: () => window.innerHeight
+    370338: () => 336,
+    370368: () => 240
   };
   var _free, _gx_request_save, _gx_request_load, _gx_state_status, _gx_state_poll, _malloc, _main, __emscripten_stack_restore, __emscripten_stack_alloc, _emscripten_stack_get_current, dynCall_viiii, dynCall_v, dynCall_vi, dynCall_vii, dynCall_ii, dynCall_iiiiii, dynCall_iiii, dynCall_viii, dynCall_iii, dynCall_viiiii, dynCall_iiiii, dynCall_iiiiiiii, dynCall_iiiiiiiiii, dynCall_iiiiiiiiiiiiiiff, dynCall_iiiiiiiii, dynCall_viiiiiii, dynCall_viiiiiiiiiii, dynCall_iiiiiidiiff, dynCall_ji, dynCall_jiji, dynCall_i, dynCall_vffff, dynCall_vf, dynCall_viiiiiiii, dynCall_viiiiiiiii, dynCall_vff, dynCall_vfi, dynCall_viif, dynCall_vif, dynCall_viff, dynCall_vifff, dynCall_viffff, dynCall_viiiiii, dynCall_vfff, dynCall_iidiiiii, _asyncify_start_unwind, _asyncify_stop_unwind, _asyncify_start_rewind, _asyncify_stop_rewind, memory, __indirect_function_table, wasmMemory;
   function assignWasmExports(wasmExports2) {
