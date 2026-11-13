@@ -253,7 +253,7 @@ class AtariWasmCore {
     if (!document.getElementById('atari800WasmScript')) {
       const script = document.createElement('script');
       script.id = 'atari800WasmScript';
-      script.src = wasmPrefix + 'atari800.js';
+      script.src = wasmPrefix + 'atari800.js?v=2';
       document.body.appendChild(script);
     } else {
       window.location.reload();
