@@ -560,11 +560,11 @@ const LANG_NAMES = {
 
 let currentLang = localStorage.getItem('atariWebOS_lang') || 'cs';
 
-export function getLanguage() {
+function getLanguage() {
   return currentLang;
 }
 
-export function setLanguage(lang) {
+function setLanguage(lang) {
   if (TRANSLATIONS[lang]) {
     currentLang = lang;
     localStorage.setItem('atariWebOS_lang', lang);
@@ -572,7 +572,7 @@ export function setLanguage(lang) {
   }
 }
 
-export function t(key, params = {}) {
+function t(key, params = {}) {
   let text = (TRANSLATIONS[currentLang] && TRANSLATIONS[currentLang][key]) ||
              (TRANSLATIONS['en'] && TRANSLATIONS['en'][key]) ||
              key;
@@ -582,7 +582,7 @@ export function t(key, params = {}) {
   return text;
 }
 
-export function applyTranslations() {
+function applyTranslations() {
   // Translate text contents
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
@@ -621,7 +621,8 @@ export function applyTranslations() {
   window.dispatchEvent(new CustomEvent('languageChanged', { detail: { lang: currentLang } }));
 }
 
-// Make accessible on window object for inline onclick handlers
+// Make accessible on window object for inline onclick handlers & classic scripts
+window.getLanguage = getLanguage;
 window.setLanguage = setLanguage;
 window.t = t;
 window.applyTranslations = applyTranslations;

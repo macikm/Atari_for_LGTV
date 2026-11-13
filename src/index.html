@@ -6,8 +6,7 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>AtariWebOS - Atari 800/XE Emulator</title>
   <link rel="stylesheet" href="style.css?v=2">
-  <link rel="icon" type="image/png" href="../webos/icon.png">
-  <script type="module" src="lang.js"></script>
+  <link rel="icon" type="image/png" href="icon.png">
 </head>
 <body>
   <div class="app-container">
@@ -62,9 +61,9 @@
           </div>
         </div>
 
-        <a href="https://buymeacoffee.com/martinmacko" target="_blank" rel="noopener noreferrer" id="btnBuyPizza" class="btn btn-pizza" data-i18n-title="buy_pizza_title" title="Podpořit vývojáře - Koupit pizzu">
+        <button type="button" id="btnBuyPizza" class="btn btn-pizza" data-i18n-title="buy_pizza_title" title="Podpořit vývojáře - Koupit pizzu">
           <span>🍕</span> <span data-i18n="buy_pizza">Koupit pizzu</span>
-        </a>
+        </button>
         <button id="btnToggleInputMode" class="btn" data-i18n-title="mode_title" title="Přepnout režim vstupu: Plná klávesnice pro BASIC vs. Herní WASD">
           <span>⌨️</span> <span data-i18n="mode_basic">Mód: BASIC</span>
         </button>
@@ -289,9 +288,29 @@
         </button>
       </div>
     </div>
+    <!-- Modal for Buy Me A Pizza (TV-friendly QR Code) -->
+    <div class="modal-overlay" id="pizzaModal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2 class="modal-title" data-i18n="support_title">Baví vás AtariWebOS?</h2>
+          <button id="btnClosePizzaModal" class="btn btn-sm" data-i18n="modal_close">✕ Zavřít</button>
+        </div>
+        <div class="qr-box">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fbuymeacoffee.com%2Fmartinmacko" alt="Buy Me A Coffee QR" style="width:100%; height:100%; object-fit:contain;">
+        </div>
+        <div class="modal-url">buymeacoffee.com/martinmacko</div>
+        <p class="modal-desc" data-i18n="support_desc">
+          Podpořte další vývoj emulátoru a novinky koupí virtuální pizzy!
+        </p>
+        <a href="https://buymeacoffee.com/martinmacko" target="_blank" rel="noopener noreferrer" class="btn btn-pizza" style="width: 100%; text-decoration: none;" data-i18n="buy_pizza_btn">
+          🍕 Koupit autorovi pizzu
+        </a>
+      </div>
+    </div>
   </div>
 
-  <!-- Main Application Script -->
-  <script type="module" src="app.js?v=5"></script>
+  <!-- Main Application Scripts (classic non-module scripts for file:// webOS compatibility) -->
+  <script src="lang.js?v=6"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>

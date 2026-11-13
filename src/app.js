@@ -4,8 +4,6 @@
  * License: GPL-2.0-or-later
  */
 
-import { t, getLanguage, applyTranslations } from './lang.js';
-
 // ============================================================================
 // 1. IndexedDB Game Storage Manager
 // ============================================================================
@@ -122,7 +120,7 @@ class AtariAudioEngine {
   }
 
   init() {
-    if (window.Module?.SDL2?.audioContext && window.Module.SDL2.audioContext.state === 'suspended') {
+    if (window.Module && window.Module.SDL2 && window.Module.SDL2.audioContext && window.Module.SDL2.audioContext.state === 'suspended') {
       window.Module.SDL2.audioContext.resume().catch(() => { });
     }
   }
@@ -703,7 +701,7 @@ class AtariApp {
       const isUserInput = active && active !== pasteSink && ['INPUT', 'SELECT', 'TEXTAREA'].includes(active.tagName);
       if (isUserInput) return;
 
-      const text = e.clipboardData?.getData('text/plain') || pasteSink.value;
+      const text = (e.clipboardData && e.clipboardData.getData('text/plain')) || pasteSink.value;
       pasteSink.value = '';
       if (this.canvas) {
         this.canvas.focus({ preventScroll: true });
@@ -950,6 +948,26 @@ class AtariApp {
         this.flashNotice(t('notice_cleared'));
       }
     });
+
+    // Pizza / Donate Modal (TV-friendly QR view)
+    const btnBuyPizza = document.getElementById('btnBuyPizza');
+    const pizzaModal = document.getElementById('pizzaModal');
+    const btnClosePizzaModal = document.getElementById('btnClosePizzaModal');
+    if (btnBuyPizza && pizzaModal) {
+      btnBuyPizza.addEventListener('click', () => {
+        pizzaModal.classList.add('open');
+      });
+      if (btnClosePizzaModal) {
+        btnClosePizzaModal.addEventListener('click', () => {
+          pizzaModal.classList.remove('open');
+        });
+      }
+      pizzaModal.addEventListener('click', (e) => {
+        if (e.target === pizzaModal) {
+          pizzaModal.classList.remove('open');
+        }
+      });
+    }
   }
 
   // ==========================================================================
@@ -1022,6 +1040,10 @@ class AtariApp {
 }
 
 // Start application when DOM is ready
-window.addEventListener('DOMContentLoaded', () => {
+if (document.readyState === 'loading') {
+  window.addEventListener('DOMContentLoaded', () => {
+    window.atariApp = new AtariApp();
+  });
+} else {
   window.atariApp = new AtariApp();
-});
+}
