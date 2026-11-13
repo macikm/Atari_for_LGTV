@@ -6,7 +6,7 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>AtariWebOS - Atari 800/XE Emulator</title>
   <link rel="stylesheet" href="style.css?v=2">
-  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="icon" type="image/png" href="icon.png?v=6">
 </head>
 <body>
   <div class="app-container">
@@ -14,10 +14,20 @@
     <header class="top-bar">
       <div class="brand">
         <svg class="logo-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-          <!-- Stylized Atari Fuji Logo -->
-          <rect x="44" y="10" width="12" height="80" rx="2" />
-          <path d="M 32 90 L 32 50 C 32 30 20 20 10 20 L 10 32 C 16 32 22 40 22 55 L 22 90 Z" />
-          <path d="M 68 90 L 68 50 C 68 30 80 20 90 20 L 90 32 C 84 32 78 40 78 55 L 78 90 Z" />
+          <defs>
+            <linearGradient id="atariRainbow" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#ff3b30"/>
+              <stop offset="22%" stop-color="#ff9500"/>
+              <stop offset="44%" stop-color="#ffcc00"/>
+              <stop offset="66%" stop-color="#34c759"/>
+              <stop offset="85%" stop-color="#007aff"/>
+              <stop offset="100%" stop-color="#af52de"/>
+            </linearGradient>
+          </defs>
+          <!-- Stylized Atari Fuji Logo (narrow at top, flaring out at bottom) -->
+          <rect x="44" y="10" width="12" height="80" rx="1.5" fill="url(#atariRainbow)" />
+          <path d="M 38 10 L 38 45 C 38 68 25 82 10 82 L 10 90 C 28 90 40 74 40 48 L 40 10 Z" fill="url(#atariRainbow)" />
+          <path d="M 62 10 L 62 45 C 62 68 75 82 90 82 L 90 90 C 72 90 60 74 60 48 L 60 10 Z" fill="url(#atariRainbow)" />
         </svg>
         <h1 class="brand-title">ATARI<span style="color:var(--atari-blue)">WebOS</span></h1>
         <span class="brand-badge">800 / XE</span>
