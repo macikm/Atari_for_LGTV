@@ -994,19 +994,57 @@ class AtariApp {
   }
 
   // ==========================================================================
-  // Companion Web Upload Modal (Mobile / WiFi Remote)
+  // Companion Web Upload Modal (Mobile / WiFi Remote via WebSocket Relay)
   // ==========================================================================
   setupCompanionModal() {
     const btnOpen = document.getElementById('btnCompanionModal');
     const btnClose = document.getElementById('btnCloseModal');
     const btnUpload = document.getElementById('btnModalUploadLocal');
 
-    const updateUrlAndQR = () => {
-      const host = window.location.hostname || 'localhost';
-      const port = window.location.port ? `:${window.location.port}` : '';
-      const companionUrl = `http://${host}${port}/upload`;
-      this.companionUrlDisplay.textContent = companionUrl;
-      this.qrContainer.innerHTML = generateSimpleQR(companionUrl);
+    // Generate or restore 6-char pairing code for this TV session
+    let roomCode = '';
+    try {
+      roomCode = sessionStorage.getItem('atariWebOS_roomCode') || '';
+    } catch (_) {}
+    if (!roomCode) {
+      const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      for (let i = 0; i < 6; i++) {
+        roomCode += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+      }
+      try {
+        sessionStorage.setItem('atariWebOS_roomCode', roomCode);
+      } catch (_) {}
+    }
+    this.roomCode = roomCode;
+
+    // Start background MQTT-over-WSS listener so TV receives files sent from mobile phone
+    this.startCompanionRelayListener(roomCode);
+
+    const updateUrlAndQR = async () => {
+      let companionUrl = `https://macikm.github.io/Atari_for_LGTV/upload.html?code=${roomCode}`;
+
+      // If running on local HTTP dev server, use the PC's LAN IP address
+      if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+        let host = window.location.hostname || 'localhost';
+        let port = window.location.port ? `:${window.location.port}` : '';
+        if (host === 'localhost' || host === '127.0.0.1') {
+          try {
+            const resp = await fetch('/api/lan-info');
+            if (resp.ok) {
+              const info = await resp.json();
+              if (info && info.ip) {
+                host = info.ip;
+              }
+            }
+          } catch (_) {}
+        }
+        if (host.indexOf('github.io') === -1) {
+          companionUrl = `${window.location.protocol}//${host}${port}/upload.html?code=${roomCode}`;
+        }
+      }
+
+      this.companionUrlDisplay.innerHTML = `<div style="font-size:0.85rem;color:#8892b0;margin-bottom:4px;">Párovací kód TV: <strong style="color:#2ecc71;letter-spacing:2px;font-size:1.15rem;">${roomCode}</strong></div><div style="word-break:break-all;font-size:0.85rem;">${companionUrl}</div>`;
+      this.qrContainer.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(companionUrl)}" alt="QR Code" style="width:100%;height:100%;object-fit:contain;">`;
     };
 
     btnOpen.addEventListener('click', () => {
@@ -1028,6 +1066,117 @@ class AtariApp {
       this.companionModal.classList.remove('open');
       document.getElementById('fileUploadInput').click();
     });
+  }
+
+  startCompanionRelayListener(roomCode) {
+    if (typeof WebSocket === 'undefined') return;
+    const self = this;
+    const topic = 'atariwebos/room/' + roomCode;
+
+    function encodeVarLen(len) {
+      const out = [];
+      do {
+        let b = len % 128;
+        len = Math.floor(len / 128);
+        if (len > 0) b |= 128;
+        out.push(b);
+      } while (len > 0);
+      return out;
+    }
+
+    function strBytes(s) {
+      return Array.from(new TextEncoder().encode(s));
+    }
+
+    function buildConnect(clientId) {
+      const idb = strBytes(clientId);
+      const body = [0, 4, 77, 81, 84, 84, 4, 2, 0, 60, 0, idb.length].concat(idb);
+      return new Uint8Array([0x10].concat(encodeVarLen(body.length), body));
+    }
+
+    function buildSubscribe(subTopic) {
+      const tb = strBytes(subTopic);
+      const body = [0, 1, (tb.length >> 8) & 255, tb.length & 255].concat(tb, [0]);
+      return new Uint8Array([0x82].concat(encodeVarLen(body.length), body));
+    }
+
+    const connect = () => {
+      let ws;
+      try {
+        ws = new WebSocket('wss://broker.emqx.io:8084/mqtt', 'mqtt');
+        ws.binaryType = 'arraybuffer';
+      } catch (_) {
+        return;
+      }
+
+      let rxBuf = new Uint8Array(0);
+      let pingInterval = null;
+
+      ws.onopen = () => {
+        const cid = 'atari_tv_' + roomCode + '_' + Math.random().toString(36).slice(2, 6);
+        ws.send(buildConnect(cid));
+        pingInterval = setInterval(() => {
+          if (ws.readyState === 1) {
+            ws.send(new Uint8Array([0xc0, 0x00]));
+          }
+        }, 45000);
+      };
+
+      ws.onmessage = async (e) => {
+        const incoming = new Uint8Array(e.data);
+        const merged = new Uint8Array(rxBuf.length + incoming.length);
+        merged.set(rxBuf, 0);
+        merged.set(incoming, rxBuf.length);
+        rxBuf = merged;
+
+        while (rxBuf.length >= 2) {
+          let mult = 1;
+          let rem = 0;
+          let idx = 1;
+          let b;
+          do {
+            if (idx >= rxBuf.length) return;
+            b = rxBuf[idx++];
+            rem += (b & 127) * mult;
+            mult *= 128;
+          } while (b & 128);
+
+          if (rxBuf.length < idx + rem) return;
+
+          const pktType = rxBuf[0] & 0xf0;
+          const pktBody = rxBuf.slice(idx, idx + rem);
+          rxBuf = rxBuf.slice(idx + rem);
+
+          if (pktType === 0x20) {
+            // CONNACK -> Subscribe to room topic
+            ws.send(buildSubscribe(topic));
+          } else if (pktType === 0x30) {
+            // PUBLISH -> Incoming file from mobile phone
+            try {
+              const tLen = (pktBody[0] << 8) | pktBody[1];
+              const payloadBytes = pktBody.slice(2 + tLen);
+              const jsonStr = new TextDecoder().decode(payloadBytes);
+              const msg = JSON.parse(jsonStr);
+              if (msg && msg.name && msg.data) {
+                const fileBytes = base64ToUint8Array(msg.data);
+                await self.storage.saveMedia(msg.name, fileBytes.buffer, msg.size || fileBytes.byteLength);
+                await self.refreshGameList();
+                self.flashNotice(t('notice_saved') + msg.name);
+              }
+            } catch (err) {
+              console.warn('Error processing incoming mobile upload:', err);
+            }
+          }
+        }
+      };
+
+      ws.onclose = () => {
+        if (pingInterval) clearInterval(pingInterval);
+        setTimeout(connect, 4000);
+      };
+    };
+
+    connect();
   }
 
   updateInputModeButton() {

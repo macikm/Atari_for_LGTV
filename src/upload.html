@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AtariWebOS – Nahrát hry do TV</title>
+  <style>
+    :root {
+      --bg: #07090e;
+      --card: #131a29;
+      --border: #273349;
+      --blue: #2c59d9;
+      --green: #2ecc71;
+      --gold: #f5a623;
+      --red: #e62314;
+      --text: #e2e8f0;
+      --muted: #8892b0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px 20px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 12px 35px rgba(0,0,0,0.6);
+      text-align: center;
+    }
+    .logo {
+      font-family: 'Courier New', monospace;
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      margin-bottom: 6px;
+    }
+    .logo span { color: var(--blue); }
+    .sub {
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.45;
+      margin-bottom: 18px;
+    }
+    .code-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 18px;
+      background: #0b101b;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .code-label {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .code-input {
+      background: transparent;
+      border: none;
+      color: var(--gold);
+      font-family: 'Courier New', monospace;
+      font-size: 1.25rem;
+      font-weight: bold;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      width: 120px;
+      text-align: center;
+      outline: none;
+      border-bottom: 2px solid var(--blue);
+    }
+    .conn-badge {
+      display: inline-block;
+      font-size: 0.8rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+      margin-bottom: 16px;
+      background: rgba(245, 166, 35, 0.15);
+      color: var(--gold);
+    }
+    .conn-badge.ok {
+      background: rgba(46, 204, 113, 0.15);
+      color: var(--green);
+    }
+    .upload-btn {
+      background: var(--blue);
+      color: #fff;
+      border: 1px solid #4a77ff;
+      border-radius: 10px;
+      padding: 15px 20px;
+      font-size: 1rem;
+      font-weight: 700;
+      width: 100%;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-bottom: 12px;
+    }
+    .upload-btn:hover, .upload-btn:active { background: #3b69eb; }
+    .upload-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .status-list {
+      margin-top: 14px;
+      text-align: left;
+      font-size: 0.85rem;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+    .status-item {
+      padding: 8px 10px;
+      border-radius: 6px;
+      background: #0c111d;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .status-item .ok { color: var(--green); font-weight: 600; }
+    .status-item .wait { color: var(--gold); }
+    .status-item .err { color: var(--red); }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">ATARI<span>WebOS</span></div>
+    <p class="sub" id="subText">Vyberte soubory her (.ATR, .XEX, .CAR, .ROM, .CAS) pro okamžité bezdrátové odeslání do vaší LG TV.</p>
+
+    <div id="connBadge" class="conn-badge">⏳ Připojuji k přenosovému kanálu...</div>
+
+    <div class="code-box">
+      <span class="code-label" id="codeLabel">Párovací kód TV:</span>
+      <input type="text" id="roomCodeInput" class="code-input" maxlength="8" placeholder="------">
+    </div>
+
+    <input type="file" id="filePicker" multiple accept=".atr,.xex,.car,.rom,.cas,.bin" style="display:none">
+    <button id="btnPick" class="upload-btn" disabled onclick="document.getElementById('filePicker').click()">
+      📁 Vybrat soubory z mobilu / PC
+    </button>
+
+    <div id="statusList" class="status-list"></div>
+  </div>
+
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var initialCode = (params.get('code') || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      var roomInput = document.getElementById('roomCodeInput');
+      var connBadge = document.getElementById('connBadge');
+      var btnPick = document.getElementById('btnPick');
+      var filePicker = document.getElementById('filePicker');
+      var statusList = document.getElementById('statusList');
+
+      if (initialCode) {
+        roomInput.value = initialCode;
+      }
+
+      // Simple MQTT 3.1.1 over WebSocket publisher
+      function encodeVarLen(len) {
+        var out = [];
+        do {
+          var b = len % 128;
+          len = Math.floor(len / 128);
+          if (len > 0) b |= 128;
+          out.push(b);
+        } while (len > 0);
+        return out;
+      }
+
+      function strBytes(s) {
+        return Array.from(new TextEncoder().encode(s));
+      }
+
+      function buildConnect(clientId) {
+        var idb = strBytes(clientId);
+        var body = [0, 4, 77, 81, 84, 84, 4, 2, 0, 60, 0, idb.length].concat(idb);
+        return new Uint8Array([0x10].concat(encodeVarLen(body.length), body));
+      }
+
+      function buildPublish(topic, payloadStr) {
+        var tb = strBytes(topic);
+        var pb = new TextEncoder().encode(payloadStr);
+        var bodyLen = 2 + tb.length + pb.length;
+        var varLen = encodeVarLen(bodyLen);
+        var pkt = new Uint8Array(1 + varLen.length + bodyLen);
+        pkt[0] = 0x30;
+        pkt.set(varLen, 1);
+        var p = 1 + varLen.length;
+        pkt[p++] = (tb.length >> 8) & 255;
+        pkt[p++] = tb.length & 255;
+        pkt.set(tb, p);
+        p += tb.length;
+        pkt.set(pb, p);
+        return pkt;
+      }
+
+      var ws = null;
+      var isReady = false;
+
+      function connectBroker() {
+        isReady = false;
+        btnPick.disabled = true;
+        connBadge.className = 'conn-badge';
+        connBadge.textContent = '⏳ Připojuji k přenosovému kanálu...';
+
+        ws = new WebSocket('wss://broker.emqx.io:8084/mqtt', 'mqtt');
+        ws.binaryType = 'arraybuffer';
+
+        ws.onopen = function () {
+          var cid = 'atari_up_' + Math.random().toString(36).slice(2, 10);
+          ws.send(buildConnect(cid));
+        };
+
+        ws.onmessage = function (e) {
+          var u = new Uint8Array(e.data);
+          if ((u[0] & 0xf0) === 0x20) {
+            isReady = true;
+            btnPick.disabled = false;
+            connBadge.className = 'conn-badge ok';
+            connBadge.textContent = '🟢 Připojeno – připraveno k odeslání do TV';
+          }
+        };
+
+        ws.onerror = function () {
+          connBadge.className = 'conn-badge';
+          connBadge.textContent = '⚠️ Chyba spojení – zkouším znovu...';
+        };
+
+        ws.onclose = function () {
+          isReady = false;
+          btnPick.disabled = true;
+          setTimeout(connectBroker, 2500);
+        };
+      }
+
+      connectBroker();
+
+      function arrayBufferToBase64(buffer) {
+        var binary = '';
+        var bytes = new Uint8Array(buffer);
+        var len = bytes.byteLength;
+        for (var i = 0; i < len; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        return window.btoa(binary);
+      }
+
+      function addStatusRow(name, stateText, cls) {
+        var row = document.createElement('div');
+        row.className = 'status-item';
+        var left = document.createElement('span');
+        left.textContent = name;
+        var right = document.createElement('span');
+        right.className = cls;
+        right.textContent = stateText;
+        row.appendChild(left);
+        row.appendChild(right);
+        statusList.prepend(row);
+        return right;
+      }
+
+      filePicker.addEventListener('change', async function (e) {
+        var code = (roomInput.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+        if (!code) {
+          alert('Zadejte prosím párovací kód zobrazený na obrazovce TV.');
+          filePicker.value = '';
+          return;
+        }
+        if (!isReady || !ws || ws.readyState !== 1) {
+          alert('Spojení ještě není připraveno, počkejte prosím okamžik.');
+          return;
+        }
+
+        var files = Array.from(e.target.files || []);
+        for (var i = 0; i < files.length; i++) {
+          var file = files[i];
+          var badge = addStatusRow(file.name, '⏳ Odesílám...', 'wait');
+          try {
+            var buf = await file.arrayBuffer();
+            var b64 = arrayBufferToBase64(buf);
+            var payload = JSON.stringify({
+              name: file.name,
+              size: file.size,
+              data: b64
+            });
+            var topic = 'atariwebos/room/' + code;
+            ws.send(buildPublish(topic, payload));
+
+            // Also POST to local dev server if running on same origin
+            if (window.location.pathname.indexOf('/upload') !== -1 && window.location.protocol.indexOf('http') === 0 && window.location.hostname !== 'raw.githack.com' && window.location.hostname.indexOf('github.io') === -1) {
+              try {
+                await fetch('/api/upload', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: payload
+                });
+              } catch (_) {}
+            }
+
+            badge.className = 'ok';
+            badge.textContent = '✅ Odesláno do TV';
+          } catch (err) {
+            badge.className = 'err';
+            badge.textContent = '❌ Chyba';
+          }
+        }
+        filePicker.value = '';
+      });
+    })();
+  </script>
+</body>
+</html>
+
