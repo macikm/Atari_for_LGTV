@@ -9,6 +9,15 @@ globalThis.runAtari800Wasm = function(Module) {
     } catch (_) {
     }
   }
+  globalThis._atariFrameCounter = 0;
+  try {
+    var _lo = globalThis.document && globalThis.document.getElementById && globalThis.document.getElementById("emulatorLoadingOverlay");
+    if (_lo && _lo.style) {
+      _lo.style.display = "flex";
+      _lo.style.opacity = "1";
+    }
+  } catch (_) {
+  }
   var __defProp = Object.defineProperty;
   var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
   var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
@@ -6756,6 +6765,24 @@ globalThis.runAtari800Wasm = function(Module) {
   var _lastSleepYield = 0;
   var _emscripten_sleep = function(ms) {
     return Asyncify.handleSleep(function(wakeUp) {
+      var sdl = Module["SDL2"];
+      var fc = globalThis._atariFrameCounter | 0;
+      if (sdl && sdl.audio && sdl.audio.pumpSilence) {
+        if (fc < 75 || performance.now() - (sdl.audio.lastAudioCallback || 0) >= 16) {
+          sdl.audio.pumpSilence();
+        }
+      }
+      if (fc < 72) {
+        if ((fc & 15) !== 15) {
+          wakeUp(0);
+          return;
+        }
+        setTimeout(function() {
+          _lastSleepYield = performance.now();
+          wakeUp(0);
+        }, 0);
+        return;
+      }
       var now = performance.now();
       if (ms <= 0 && now - _lastSleepYield < 18) {
         wakeUp(0);
@@ -7294,6 +7321,20 @@ globalThis.runAtari800Wasm = function(Module) {
     },
     364457: ($0, $1, $2, $3) => {
       var SDL2 = Module["SDL2"];
+      SDL2.audio.lastAudioCallback = performance.now();
+      SDL2.audio.silenceBuffer = SDL2.audioContext.createBuffer(
+        $0,
+        $1,
+        SDL2.audioContext.sampleRate
+      );
+      SDL2.audio.silenceBuffer.getChannelData(0).fill(0);
+      SDL2.audio.pumpSilence = function() {
+        if (!SDL2 || !SDL2.audio || !SDL2.audio.silenceBuffer) return;
+        SDL2.audio.lastAudioCallback = performance.now();
+        SDL2.audio.currentOutputBuffer = SDL2.audio.silenceBuffer;
+        dynCall("vp", $2, [$3]);
+        SDL2.audio.currentOutputBuffer = void 0;
+      };
       SDL2.audio.scriptProcessorNode = SDL2.audioContext["createScriptProcessor"](
         $1,
         0,
@@ -7303,42 +7344,30 @@ globalThis.runAtari800Wasm = function(Module) {
         if (SDL2 === void 0 || SDL2.audio === void 0) {
           return;
         }
-        if (SDL2.audio.silenceTimer !== void 0) {
-          clearInterval(SDL2.audio.silenceTimer);
-          SDL2.audio.silenceTimer = void 0;
-          SDL2.audio.silenceBuffer = void 0;
-        }
+        SDL2.audio.lastAudioCallback = performance.now();
         SDL2.audio.currentOutputBuffer = e["outputBuffer"];
         dynCall("vp", $2, [$3]);
-        if (Module["isAudioMuted"] || typeof window !== "undefined" && window.isAudioMuted) {
+        SDL2.audio.currentOutputBuffer = void 0;
+        var isBooting = (globalThis._atariFrameCounter | 0) < 75;
+        if (isBooting || Module["isAudioMuted"] || typeof window !== "undefined" && window.isAudioMuted) {
           for (var c = 0; c < e["outputBuffer"]["numberOfChannels"]; ++c) {
             e["outputBuffer"]["getChannelData"](c).fill(0);
           }
         }
       };
       SDL2.audio.scriptProcessorNode["connect"](SDL2.audioContext["destination"]);
-      if (SDL2.audioContext.state === "suspended") {
-        SDL2.audio.silenceBuffer = SDL2.audioContext.createBuffer(
-          $0,
-          $1,
-          SDL2.audioContext.sampleRate
-        );
-        SDL2.audio.silenceBuffer.getChannelData(0).fill(0);
-        var silence_callback = function() {
-          if (typeof navigator.userActivation !== "undefined") {
-            if (navigator.userActivation.hasBeenActive) {
-              SDL2.audioContext.resume();
-            }
+      var silence_callback = function() {
+        if (!SDL2 || !SDL2.audio) return;
+        if (SDL2.audioContext && SDL2.audioContext.state === "suspended") {
+          if (typeof navigator.userActivation !== "undefined" && navigator.userActivation.hasBeenActive) {
+            SDL2.audioContext.resume();
           }
-          SDL2.audio.currentOutputBuffer = SDL2.audio.silenceBuffer;
-          dynCall("vp", $2, [$3]);
-          SDL2.audio.currentOutputBuffer = void 0;
-        };
-        SDL2.audio.silenceTimer = setInterval(
-          silence_callback,
-          $1 / SDL2.audioContext.sampleRate * 1e3
-        );
-      }
+        }
+        if (performance.now() - (SDL2.audio.lastAudioCallback || 0) >= 16) {
+          SDL2.audio.pumpSilence();
+        }
+      };
+      SDL2.audio.silenceTimer = setInterval(silence_callback, 16);
     },
     365632: ($0, $1) => {
       var SDL2 = Module["SDL2"];
@@ -7485,6 +7514,18 @@ globalThis.runAtari800Wasm = function(Module) {
       }
       SDL2.ctx.putImageData(SDL2.image, 0, 0);
       globalThis._atariFrameCounter = (globalThis._atariFrameCounter | 0) + 1;
+      if (globalThis._atariFrameCounter === 75) {
+        try {
+          var _lo2 = globalThis.document && globalThis.document.getElementById && globalThis.document.getElementById("emulatorLoadingOverlay");
+          if (_lo2 && _lo2.style) {
+            _lo2.style.opacity = "0";
+            setTimeout(function() {
+              if (_lo2 && _lo2.style) _lo2.style.display = "none";
+            }, 260);
+          }
+        } catch (_) {
+        }
+      }
       if (globalThis._pendingKeyUps && globalThis._pendingKeyUps.length) {
         var q = globalThis._pendingKeyUps;
         for (var qi = 0; qi < q.length; qi++) {
