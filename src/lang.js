@@ -93,7 +93,10 @@ const TRANSLATIONS = {
     notice_basic: "Aktivován režim BASIC (plná klávesnice)",
     paste_progress: "📋 Vkládám do BASICu ({percent}%) – ESC pro zrušení",
     paste_done: "✅ Vložení textu dokončeno",
-    paste_cancelled: "⏹ Vkládání zrušeno"
+    paste_cancelled: "⏹ Vkládání zrušeno",
+    btn_paste: "📋 PASTE (CTRL+V)",
+    btn_paste_title: "Vložit text ze schránky do BASICu (Ctrl+V / Shift+Insert)",
+    paste_prompt: "Vložte BASIC kód pro zapsání do Atari:"
   },
 
   sk: {
@@ -178,7 +181,10 @@ const TRANSLATIONS = {
     notice_basic: "Aktivovaný režim BASIC (plná klávesnica)",
     paste_progress: "📋 Vkladám do BASICu ({percent}%) – ESC pre zrušenie",
     paste_done: "✅ Vloženie textu dokončené",
-    paste_cancelled: "⏹ Vkladanie zrušené"
+    paste_cancelled: "⏹ Vkladanie zrušené",
+    btn_paste: "📋 PASTE (CTRL+V)",
+    btn_paste_title: "Vložiť text zo schránky do BASICu (Ctrl+V / Shift+Insert)",
+    paste_prompt: "Vložte BASIC kód na zapísanie do Atari:"
   },
 
   en: {
@@ -263,7 +269,10 @@ const TRANSLATIONS = {
     notice_basic: "BASIC Mode active (Full Keyboard)",
     paste_progress: "📋 Pasting to BASIC ({percent}%) – ESC to cancel",
     paste_done: "✅ Paste completed",
-    paste_cancelled: "⏹ Paste cancelled"
+    paste_cancelled: "⏹ Paste cancelled",
+    btn_paste: "📋 PASTE (CTRL+V)",
+    btn_paste_title: "Paste text from clipboard into BASIC (Ctrl+V / Shift+Insert)",
+    paste_prompt: "Paste BASIC code to type into Atari:"
   },
 
   de: {
@@ -348,7 +357,10 @@ const TRANSLATIONS = {
     notice_basic: "BASIC-Modus aktiv (Volle Tastatur)",
     paste_progress: "📋 Einfügen in BASIC ({percent}%) – ESC zum Abbrechen",
     paste_done: "✅ Einfügen abgeschlossen",
-    paste_cancelled: "⏹ Einfügen abgebrochen"
+    paste_cancelled: "⏹ Einfügen abgebrochen",
+    btn_paste: "📋 PASTE (CTRL+V)",
+    btn_paste_title: "Text aus Zwischenablage in BASIC einfügen (Strg+V)",
+    paste_prompt: "BASIC-Code für Atari einfügen:"
   },
 
   es: {
@@ -433,7 +445,10 @@ const TRANSLATIONS = {
     notice_basic: "Modo BASIC activado (Teclado completo)",
     paste_progress: "📋 Pegando en BASIC ({percent}%) – ESC para cancelar",
     paste_done: "✅ Pegado completado",
-    paste_cancelled: "⏹ Pegado cancelado"
+    paste_cancelled: "⏹ Pegado cancelado",
+    btn_paste: "📋 PASTE (CTRL+V)",
+    btn_paste_title: "Pegar texto del portapapeles en BASIC (Ctrl+V)",
+    paste_prompt: "Pega el código BASIC para Atari:"
   },
 
   it: {
@@ -518,7 +533,10 @@ const TRANSLATIONS = {
     notice_basic: "Modalità BASIC attiva (Tastiera completa)",
     paste_progress: "📋 Incolla in BASIC ({percent}%) – ESC per annullare",
     paste_done: "✅ Incolla completato",
-    paste_cancelled: "⏹ Operazione annullata"
+    paste_cancelled: "⏹ Operazione annullata",
+    btn_paste: "📋 PASTE (CTRL+V)",
+    btn_paste_title: "Incolla testo dagli appunti in BASIC (Ctrl+V)",
+    paste_prompt: "Incolla il codice BASIC per Atari:"
   }
 };
 

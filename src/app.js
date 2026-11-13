@@ -123,7 +123,7 @@ class AtariAudioEngine {
 
   init() {
     if (window.Module?.SDL2?.audioContext && window.Module.SDL2.audioContext.state === 'suspended') {
-      window.Module.SDL2.audioContext.resume().catch(() => {});
+      window.Module.SDL2.audioContext.resume().catch(() => { });
     }
   }
 
@@ -405,6 +405,15 @@ class AtariWasmCore {
     this._pasteState = state;
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
+    // Release any held Ctrl/Shift modifiers left over from Ctrl+V / Shift+Insert
+    [
+      { key: 'Control', code: 'ControlLeft', keyCode: 17 },
+      { key: 'Control', code: 'ControlRight', keyCode: 17 },
+      { key: 'Shift', code: 'ShiftLeft', keyCode: 16 },
+      { key: 'Shift', code: 'ShiftRight', keyCode: 16 }
+    ].forEach((mod) => this._dispatchKey('keyup', mod));
+    await wait(80);
+
     for (let i = 0; i < chars.length; i++) {
       if (state.cancelled) {
         if (onDone) onDone(false);
@@ -414,14 +423,14 @@ class AtariWasmCore {
       const spec = this._mapCharToKeySpec(chars[i]);
       this._dispatchKey('keydown', spec);
       if (!spec.isEnter) {
-        await wait(8);
+        await wait(12);
         this._dispatchKey('keypress', spec);
       }
-      await wait(14);
+      await wait(26);
       this._dispatchKey('keyup', spec);
 
       // Pause longer after Enter so Atari BASIC can tokenize and store the line
-      await wait(spec.isEnter ? 95 : 26);
+      await wait(spec.isEnter ? 120 : 28);
 
       if (onProgress && (i % 15 === 0 || i === chars.length - 1)) {
         const percent = Math.round(((i + 1) / chars.length) * 100);
@@ -569,7 +578,7 @@ class AtariApp {
       pasteSink.id = 'clipboardPasteSink';
       pasteSink.setAttribute('aria-hidden', 'true');
       pasteSink.tabIndex = -1;
-      pasteSink.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;';
+      pasteSink.style.cssText = 'position:fixed;left:0;top:0;width:4px;height:4px;opacity:0.01;border:0;padding:0;z-index:9999;';
       document.body.appendChild(pasteSink);
     }
 
@@ -615,7 +624,7 @@ class AtariApp {
           if (!fallbackText && navigator.clipboard && navigator.clipboard.readText) {
             try {
               fallbackText = await navigator.clipboard.readText();
-            } catch (_) {}
+            } catch (_) { }
           }
           if (fallbackText) {
             pasteHandledAt = Date.now();
@@ -784,7 +793,7 @@ class AtariApp {
     list.forEach(item => {
       const el = document.createElement('div');
       el.className = 'game-item';
-      
+
       const sizeKb = (item.size / 1024).toFixed(1);
       const dateStr = new Date(item.date).toLocaleDateString(getLanguage());
 
@@ -890,6 +899,30 @@ class AtariApp {
     document.getElementById('btnColdReset').addEventListener('click', () => {
       window.location.search = '';
     });
+    const btnPasteBasic = document.getElementById('btnPasteBasic');
+    if (btnPasteBasic) {
+      btnPasteBasic.addEventListener('click', async () => {
+        let text = '';
+        if (navigator.clipboard && navigator.clipboard.readText) {
+          try {
+            text = await navigator.clipboard.readText();
+          } catch (_) {}
+        }
+        if (!text) {
+          text = window.prompt(t('paste_prompt')) || '';
+        }
+        if (!text) return;
+        this.wasmCore.pasteText(
+          text,
+          (percent) => this.flashNotice(t('paste_progress', { percent })),
+          (completed) => {
+            if (completed) {
+              this.flashNotice(t('paste_done'));
+            }
+          }
+        );
+      });
+    }
 
     // Search Box
     document.getElementById('librarySearchInput').addEventListener('input', (e) => {
