@@ -53,50 +53,58 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 24px;
+  gap: 14px;
+  padding: 8px 16px;
   background: linear-gradient(180deg, #161c2c 0%, #0c101a 100%);
   border-bottom: 2px solid var(--border-color);
-  min-height: 60px;
+  min-height: 54px;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .logo-icon {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   fill: var(--atari-accent);
+  flex-shrink: 0;
 }
 
 .brand-title {
   font-family: var(--font-retro);
-  font-size: 1.35rem;
+  font-size: 1.25rem;
   font-weight: 800;
-  letter-spacing: 2px;
+  letter-spacing: 1.5px;
   color: #ffffff;
   text-shadow: 0 0 10px rgba(44, 89, 217, 0.5);
+  white-space: nowrap;
 }
 
 .brand-badge {
-  font-size: 0.75rem;
-  padding: 2px 8px;
+  font-size: 0.72rem;
+  padding: 3px 8px;
   background: var(--atari-blue);
   color: #fff;
   border-radius: 4px;
   font-weight: 600;
   text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* Status Indicators */
 .status-indicators {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 14px;
   font-family: var(--font-retro);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .indicator-item {
@@ -104,6 +112,17 @@ html, body {
   align-items: center;
   gap: 6px;
   color: var(--text-muted);
+  white-space: nowrap;
+  min-width: 0;
+}
+
+#loadedMediaName {
+  display: inline-block;
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
 }
 
 .led {
@@ -139,24 +158,33 @@ html, body {
 .top-controls {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   background: var(--bg-card);
   color: var(--text-main);
   border: 1px solid var(--border-color);
-  padding: 8px 16px;
+  padding: 6px 12px;
   border-radius: 6px;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   outline: none;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: all 0.2s ease;
+}
+
+.top-controls .btn {
+  height: 34px;
+  padding: 0 11px;
+  font-size: 0.82rem;
 }
 
 .btn:hover, .btn:focus {
@@ -228,11 +256,13 @@ html, body {
 .lang-selected {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  font-size: 0.85rem;
+  gap: 6px;
+  height: 34px;
+  padding: 0 10px;
+  font-size: 0.82rem;
   font-weight: 700;
   color: #ffffff;
+  white-space: nowrap;
 }
 
 .lang-selected .flag-img, .lang-opt .flag-img {
@@ -773,7 +803,29 @@ canvas#canvas {
   outline-offset: 2px;
 }
 
-/* Responsive breakpoint for smaller displays */
+/* Responsive breakpoints for medium & smaller displays */
+@media (max-width: 1380px) {
+  #loadedMediaName {
+    max-width: 120px;
+  }
+  #btnToggleFullscreen [data-i18n="fullscreen"] {
+    display: none;
+  }
+}
+
+@media (max-width: 1180px) {
+  .top-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 12px;
+  }
+  .top-controls {
+    width: 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+}
+
 @media (max-width: 960px) {
   .sidebar-panel {
     position: absolute;

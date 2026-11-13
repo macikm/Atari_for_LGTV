@@ -379,6 +379,7 @@ class AtariApp {
       const media = await this.storage.getMedia(mediaId);
       if (media) {
         this.loadedMediaName.textContent = media.name;
+        this.loadedMediaName.title = media.name;
         await this.wasmCore.init(media.name, media.data);
       } else {
         await this.wasmCore.init();
