@@ -7740,6 +7740,11 @@ var ASM_CONSTS = {
       }
       SDL2.audio.currentOutputBuffer = e['outputBuffer'];
       dynCall('vp', $2, [$3]);
+      if (Module['isAudioMuted'] || (typeof window !== 'undefined' && window.isAudioMuted)) {
+        for (var c = 0; c < e['outputBuffer']['numberOfChannels']; ++c) {
+          e['outputBuffer']['getChannelData'](c).fill(0);
+        }
+      }
     };
     SDL2.audio.scriptProcessorNode['connect'](SDL2.audioContext['destination']);
     if (SDL2.audioContext.state === 'suspended') {
@@ -7793,7 +7798,7 @@ var ASM_CONSTS = {
   366237: ($0, $1) => {
     var SDL2 = Module['SDL2'];
     var numChannels = SDL2.audio.currentOutputBuffer['numberOfChannels'];
-    if (Module['isAudioMuted']) {
+    if (Module['isAudioMuted'] || (typeof window !== 'undefined' && window.isAudioMuted)) {
       for (var c = 0; c < numChannels; ++c) {
         SDL2.audio.currentOutputBuffer['getChannelData'](c).fill(0);
       }

@@ -133,8 +133,12 @@ class AtariAudioEngine {
 
   toggle() {
     this.enabled = !this.enabled;
-    if (window.Module) {
-      window.Module['isAudioMuted'] = !this.enabled;
+    const isMuted = !this.enabled;
+    if (typeof window !== 'undefined') {
+      window.isAudioMuted = isMuted;
+      if (window.Module) {
+        window.Module['isAudioMuted'] = isMuted;
+      }
     }
     return this.enabled;
   }
@@ -577,6 +581,23 @@ class AtariApp {
   // UI & TV Event Listeners
   // ==========================================================================
   setupUIEvents() {
+    // Audio Toggle (Mute / Unmute)
+    const btnToggleAudio = document.getElementById('btnToggleAudio');
+    if (btnToggleAudio) {
+      btnToggleAudio.addEventListener('click', () => {
+        this.audio.init();
+        const isEnabled = this.audio.toggle();
+        if (this.audioIcon) {
+          this.audioIcon.textContent = isEnabled ? '🔊' : '🔇';
+        }
+        if (this.audioLed) {
+          this.audioLed.className = isEnabled ? 'led led-green active' : 'led led-red active';
+          this.audioLed.title = isEnabled ? 'Zvuk zapnut' : 'Zvuk vypnut (MUTE)';
+        }
+        this.flashNotice(isEnabled ? '🔊 Zvuk zapnut' : '🔇 Zvuk ztlumen (MUTE)');
+      });
+    }
+
     // CRT Scanlines Toggle
     document.getElementById('btnToggleScanlines').addEventListener('click', () => {
       this.crtOverlay.classList.toggle('disabled');
