@@ -31,12 +31,22 @@ fs.copyFileSync(path.join(WEBOS_DIR, 'appinfo.json'), path.join(DIST_DIR, 'appin
 });
 
 // Copy core files from /src
-['index.html', 'upload.html', 'app.js', 'lang.js', 'style.css'].forEach(file => {
+['index.html', 'upload.html', 'app.js', 'lang.js', 'style.css', 'icon.png', 'favicon.ico'].forEach(file => {
   const p = path.join(SRC_DIR, file);
   if (fs.existsSync(p)) {
     fs.copyFileSync(p, path.join(DIST_DIR, file));
   }
 });
+
+// Copy vendor directory (e.g. mqtt.min.js)
+const VENDOR_SRC = path.join(SRC_DIR, 'vendor');
+const VENDOR_DIST = path.join(DIST_DIR, 'vendor');
+if (fs.existsSync(VENDOR_SRC)) {
+  fs.mkdirSync(VENDOR_DIST, { recursive: true });
+  fs.readdirSync(VENDOR_SRC).forEach(file => {
+    fs.copyFileSync(path.join(VENDOR_SRC, file), path.join(VENDOR_DIST, file));
+  });
+}
 
 // Generate embedded assets bundle (WASM + ROMs as classic JS script for file:// webOS compatibility)
 const ROMS_SRC = path.join(SRC_DIR, 'roms');
@@ -57,11 +67,11 @@ if (fs.existsSync(ROMS_SRC)) {
   });
 }
 
-// Copy wasm directory (atari800.js + assets_bundle.js)
+// Copy wasm directory (atari800.js + assets_bundle.js + atari800.wasm)
 const WASM_DIST = path.join(DIST_DIR, 'wasm');
 if (fs.existsSync(WASM_SRC)) {
   fs.mkdirSync(WASM_DIST, { recursive: true });
-  ['atari800.js', 'assets_bundle.js'].forEach(file => {
+  ['atari800.js', 'assets_bundle.js', 'atari800.wasm'].forEach(file => {
     const p = path.join(WASM_SRC, file);
     if (fs.existsSync(p)) {
       fs.copyFileSync(p, path.join(WASM_DIST, file));

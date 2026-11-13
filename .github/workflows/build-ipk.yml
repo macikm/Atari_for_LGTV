@@ -57,7 +57,7 @@ jobs:
         if: github.event_name == 'push' || github.event_name == 'release' || inputs.create_release == true
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.tag_name || github.ref_name || 'v1.0.0' }}
+          tag_name: ${{ inputs.tag_name || 'v1.0.0' }}
           name: AtariWebOS ${{ inputs.tag_name || 'v1.0.0' }}
           files: output/*.ipk
           draft: false

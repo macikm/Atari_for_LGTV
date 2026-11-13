@@ -1,151 +1,114 @@
-/**
- * AtariWebOS - Full Standalone Atari 800/XE Emulator for LG webOS TV & Desktop
- * Author: Martin Macko
- * License: GPL-2.0-or-later
- */
-
-// ============================================================================
-// 1. IndexedDB Game Storage Manager
-// ============================================================================
-
 class AtariStorage {
-  constructor(dbName = 'AtariWebOS_DB', storeName = 'games') {
+  constructor(dbName = "AtariWebOS_DB", storeName = "games") {
     this.dbName = dbName;
     this.storeName = storeName;
     this.db = null;
   }
-
   async init() {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(this.dbName, 1);
-
       request.onupgradeneeded = (event) => {
         const db = event.target.result;
         if (!db.objectStoreNames.contains(this.storeName)) {
-          const store = db.createObjectStore(this.storeName, { keyPath: 'id', autoIncrement: true });
-          store.createIndex('name', 'name', { unique: false });
-          store.createIndex('date', 'date', { unique: false });
+          const store = db.createObjectStore(this.storeName, { keyPath: "id", autoIncrement: true });
+          store.createIndex("name", "name", { unique: false });
+          store.createIndex("date", "date", { unique: false });
         }
       };
-
       request.onsuccess = (event) => {
         this.db = event.target.result;
         resolve(this.db);
       };
-
       request.onerror = (event) => {
-        console.error('IndexedDB init error:', event.target.error);
+        console.error("IndexedDB init error:", event.target.error);
         reject(event.target.error);
       };
     });
   }
-
   async saveMedia(name, arrayBuffer, size) {
     if (!this.db) await this.init();
     return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction([this.storeName], 'readwrite');
+      const transaction = this.db.transaction([this.storeName], "readwrite");
       const store = transaction.objectStore(this.storeName);
-
-      const ext = name.split('.').pop().toLowerCase();
+      const ext = name.split(".").pop().toLowerCase();
       const item = {
-        name: name,
-        ext: ext,
+        name,
+        ext,
         size: size || arrayBuffer.byteLength,
         data: arrayBuffer,
-        date: new Date().toISOString()
+        date: (/* @__PURE__ */ new Date()).toISOString()
       };
-
       const request = store.add(item);
       request.onsuccess = () => resolve(request.result);
       request.onerror = (e) => reject(e.target.error);
     });
   }
-
   async getAllMedia() {
     if (!this.db) await this.init();
     return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction([this.storeName], 'readonly');
+      const transaction = this.db.transaction([this.storeName], "readonly");
       const store = transaction.objectStore(this.storeName);
       const request = store.getAll();
-
       request.onsuccess = () => resolve(request.result);
       request.onerror = (e) => reject(e.target.error);
     });
   }
-
   async getMedia(id) {
     if (!this.db) await this.init();
     return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction([this.storeName], 'readonly');
+      const transaction = this.db.transaction([this.storeName], "readonly");
       const store = transaction.objectStore(this.storeName);
       const request = store.get(Number(id));
-
       request.onsuccess = () => resolve(request.result);
       request.onerror = (e) => reject(e.target.error);
     });
   }
-
   async deleteMedia(id) {
     if (!this.db) await this.init();
     return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction([this.storeName], 'readwrite');
+      const transaction = this.db.transaction([this.storeName], "readwrite");
       const store = transaction.objectStore(this.storeName);
       const request = store.delete(Number(id));
-
       request.onsuccess = () => resolve();
       request.onerror = (e) => reject(e.target.error);
     });
   }
-
   async clearAll() {
     if (!this.db) await this.init();
     return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction([this.storeName], 'readwrite');
+      const transaction = this.db.transaction([this.storeName], "readwrite");
       const store = transaction.objectStore(this.storeName);
       const request = store.clear();
-
       request.onsuccess = () => resolve();
       request.onerror = (e) => reject(e.target.error);
     });
   }
 }
-
-// ============================================================================
-// 2. Web Audio & Sound Helper with Direct Buffer Mute Control
-// ============================================================================
-
 class AtariAudioEngine {
   constructor() {
     this.enabled = true;
   }
-
   init() {
-    if (window.Module && window.Module.SDL2 && window.Module.SDL2.audioContext && window.Module.SDL2.audioContext.state === 'suspended') {
-      window.Module.SDL2.audioContext.resume().catch(() => { });
+    if (window.Module && window.Module.SDL2 && window.Module.SDL2.audioContext && window.Module.SDL2.audioContext.state === "suspended") {
+      window.Module.SDL2.audioContext.resume().catch(() => {
+      });
     }
   }
-
   resume() {
     this.init();
   }
-
   toggle() {
     this.enabled = !this.enabled;
     const isMuted = !this.enabled;
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       window.isAudioMuted = isMuted;
       if (window.Module) {
-        window.Module['isAudioMuted'] = isMuted;
+        window.Module["isAudioMuted"] = isMuted;
       }
     }
     return this.enabled;
   }
 }
-
-// ============================================================================
-// 3. Atari800 WebAssembly Integration Core
-// ============================================================================
-
 function base64ToUint8Array(base64) {
   const binaryStr = window.atob(base64);
   const len = binaryStr.length;
@@ -155,219 +118,199 @@ function base64ToUint8Array(base64) {
   }
   return bytes;
 }
-
 class AtariWasmCore {
   constructor(canvas) {
     this.canvas = canvas;
     this.isLoaded = false;
-    this.loadedMediaName = 'Atari BASIC (Altirra/Atari 800XL)';
+    this.loadedMediaName = "Atari BASIC (Altirra/Atari 800XL)";
     this.activeDiskBytes = null;
     this.activeDiskFilename = null;
   }
-
   async init(mediaName = null, mediaBytes = null) {
-    console.log('Initializing Atari800 WebAssembly Core...');
+    console.log("Initializing Atari800 WebAssembly Core...");
     const self = this;
-
-    // Detect path to wasm and roms directories relative to current location
-    const basePath = window.location.pathname.includes('/src/') ? '' : '';
-    const wasmPrefix = basePath + 'wasm/';
-    const romsPrefix = basePath + 'roms/';
-
+    const basePath = window.location.pathname.includes("/src/") ? "" : "";
+    const wasmPrefix = basePath + "wasm/";
+    const romsPrefix = basePath + "roms/";
     let args = [
-      '-stretch', 'full',
-      '-fit-screen', 'both',
-      '-image-aspect', 'none',
-      '-horiz-area', 'tv',
-      '-vert-area', 'tv'
+      "-stretch",
+      "full",
+      "-fit-screen",
+      "both",
+      "-image-aspect",
+      "none",
+      "-horiz-area",
+      "tv",
+      "-vert-area",
+      "tv"
     ];
-
-    // ROM options: load genuine Atari XL/XE OS & Atari BASIC
-    args.push('-xlxe_rom', '/atarixl.rom');
-    args.push('-basic_rom', '/ataribas.rom');
-
-    // Determine machine type (default Atari 800XL)
-    const machineSelect = document.getElementById('machineSelect');
-    const machineType = machineSelect ? machineSelect.value : '800xl';
-
-    if (machineType === '130xe') {
-      args.unshift('-xe');
-    } else if (machineType === '800') {
-      args.unshift('-atari');
+    args.push("-xlxe_rom", "/atarixl.rom");
+    args.push("-basic_rom", "/ataribas.rom");
+    const machineSelect = document.getElementById("machineSelect");
+    const machineType = machineSelect ? machineSelect.value : "800xl";
+    if (machineType === "130xe") {
+      args.unshift("-xe");
+    } else if (machineType === "800") {
+      args.unshift("-atari");
     } else {
-      args.unshift('-xl');
+      args.unshift("-xl");
     }
-
-    const tvSystemSelect = document.getElementById('tvSystemSelect');
-    const tvSystem = tvSystemSelect ? tvSystemSelect.value : 'pal';
-    args.push(tvSystem === 'ntsc' ? '-ntsc' : '-pal');
-
+    const tvSystemSelect = document.getElementById("tvSystemSelect");
+    const tvSystem = tvSystemSelect ? tvSystemSelect.value : "pal";
+    args.push(tvSystem === "ntsc" ? "-ntsc" : "-pal");
     if (mediaName && mediaBytes) {
       this.activeDiskFilename = mediaName;
       this.activeDiskBytes = mediaBytes;
-      const vfsName = 'media_' + mediaName.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const ext = mediaName.split('.').pop().toLowerCase();
-
-      if (ext === 'rom' || ext === 'bin' || ext === 'car') {
-        args.push('-nobasic');
-        args.push('-cart', '/' + vfsName);
+      const vfsName = "media_" + mediaName.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const ext = mediaName.split(".").pop().toLowerCase();
+      if (ext === "rom" || ext === "bin" || ext === "car") {
+        args.push("-nobasic");
+        args.push("-cart", "/" + vfsName);
       } else {
-        // .atr, .xex, etc.
-        args.push('-nobasic');
-        args.push('/' + vfsName);
+        args.push("-nobasic");
+        args.push("/" + vfsName);
       }
     } else {
       this.activeDiskFilename = null;
       this.activeDiskBytes = null;
-      // Boot directly into Atari BASIC!
-      args.push('-basic');
+      args.push("-basic");
     }
-
     const embedded = window.ATARI_EMBEDDED_ASSETS || null;
     const wasmBytes = embedded && embedded.wasm ? base64ToUint8Array(embedded.wasm) : null;
-
     window.Module = {
-      canvas: document.getElementById('canvas'),
+      canvas: document.getElementById("canvas"),
       arguments: args,
       wasmBinary: wasmBytes,
       isAudioMuted: !!window.isAudioMuted,
-      preRun: [function () {
-        // Load genuine Atari ROMs into root MEMFS (directly from embedded memory bundle if available)
+      preRun: [function() {
         try {
           if (embedded && embedded.xlRom && embedded.basRom) {
-            window.Module.FS.writeFile('/atarixl.rom', base64ToUint8Array(embedded.xlRom));
-            window.Module.FS.writeFile('/ataribas.rom', base64ToUint8Array(embedded.basRom));
+            window.Module.FS.writeFile("/atarixl.rom", base64ToUint8Array(embedded.xlRom));
+            window.Module.FS.writeFile("/ataribas.rom", base64ToUint8Array(embedded.basRom));
           } else {
-            window.Module.FS.createPreloadedFile('/', 'atarixl.rom', romsPrefix + 'atarixl.rom', true, false);
-            window.Module.FS.createPreloadedFile('/', 'ataribas.rom', romsPrefix + 'ataribas.rom', true, false);
+            window.Module.FS.createPreloadedFile("/", "atarixl.rom", romsPrefix + "atarixl.rom", true, false);
+            window.Module.FS.createPreloadedFile("/", "ataribas.rom", romsPrefix + "ataribas.rom", true, false);
           }
         } catch (e) {
-          console.warn('ROM preloading note:', e);
+          console.warn("ROM preloading note:", e);
         }
-
         if (self.activeDiskFilename && self.activeDiskBytes) {
-          const vfsName = 'media_' + self.activeDiskFilename.replace(/[^a-zA-Z0-9._-]/g, '_');
+          const vfsName = "media_" + self.activeDiskFilename.replace(/[^a-zA-Z0-9._-]/g, "_");
           try {
-            window.Module.FS.writeFile('/' + vfsName, new Uint8Array(self.activeDiskBytes));
-            console.log('Written to VFS:', vfsName, self.activeDiskBytes.byteLength, 'bytes');
+            window.Module.FS.writeFile("/" + vfsName, new Uint8Array(self.activeDiskBytes));
+            console.log("Written to VFS:", vfsName, self.activeDiskBytes.byteLength, "bytes");
           } catch (e) {
-            console.error('Failed to write disk to VFS:', e);
+            console.error("Failed to write disk to VFS:", e);
           }
         }
       }],
-      postRun: [function () {
-        console.log('Atari800 WASM running successfully with Atari OS & BASIC!');
+      postRun: [function() {
+        console.log("Atari800 WASM running successfully with Atari OS & BASIC!");
         self.isLoaded = true;
       }],
-      locateFile: function (path, prefix) {
-        if (path.endsWith('.wasm')) {
+      locateFile: function(path, prefix) {
+        if (path.endsWith(".wasm")) {
           return wasmPrefix + path;
         }
         return prefix + path;
       },
-      print: function (text) {
-        console.log('[Atari800]', text);
+      print: function(text) {
+        console.log("[Atari800]", text);
       },
-      printErr: function (text) {
-        console.warn('[Atari800]', text);
+      printErr: function(text) {
+        console.warn("[Atari800]", text);
       }
     };
-
-    if (typeof window.runAtari800Wasm === 'function') {
+    if (typeof window.runAtari800Wasm === "function") {
       window.runAtari800Wasm(window.Module);
-    } else if (!document.getElementById('atari800WasmScript')) {
-      const script = document.createElement('script');
-      script.id = 'atari800WasmScript';
-      script.src = wasmPrefix + 'atari800.js';
-      script.onload = function () {
-        if (typeof window.runAtari800Wasm === 'function') {
+    } else if (!document.getElementById("atari800WasmScript")) {
+      const script = document.createElement("script");
+      script.id = "atari800WasmScript";
+      script.src = wasmPrefix + "atari800.js";
+      script.onload = function() {
+        if (typeof window.runAtari800Wasm === "function") {
           window.runAtari800Wasm(window.Module);
         }
       };
       document.body.appendChild(script);
     }
   }
-
   // Trigger Console keys via keyboard event injection or Emscripten SDL events
   sendConsoleKey(keyCode, charCode, keyName) {
     if (!this.canvas) return;
     this.canvas.focus();
-    const eventDown = new KeyboardEvent('keydown', {
+    const eventDown = new KeyboardEvent("keydown", {
       key: keyName,
       code: keyName,
-      keyCode: keyCode,
-      charCode: charCode,
+      keyCode,
+      charCode,
       bubbles: true,
       cancelable: true
     });
     window.dispatchEvent(eventDown);
-
     setTimeout(() => {
-      const eventUp = new KeyboardEvent('keyup', {
+      const eventUp = new KeyboardEvent("keyup", {
         key: keyName,
         code: keyName,
-        keyCode: keyCode,
-        charCode: charCode,
+        keyCode,
+        charCode,
         bubbles: true,
         cancelable: true
       });
       window.dispatchEvent(eventUp);
     }, 120);
   }
-
   _mapCharToKeySpec(ch) {
-    if (ch === '\n') {
-      return { key: 'Enter', code: 'Enter', keyCode: 13, charCode: 13, shiftKey: false, isEnter: true };
+    if (ch === "\n") {
+      return { key: "Enter", code: "Enter", keyCode: 13, charCode: 13, shiftKey: false, isEnter: true };
     }
-    if (ch === ' ') {
-      return { key: ' ', code: 'Space', keyCode: 32, charCode: 32, shiftKey: false };
+    if (ch === " ") {
+      return { key: " ", code: "Space", keyCode: 32, charCode: 32, shiftKey: false };
     }
-    if (ch >= 'a' && ch <= 'z') {
+    if (ch >= "a" && ch <= "z") {
       const upper = ch.toUpperCase();
-      return { key: ch, code: 'Key' + upper, keyCode: upper.charCodeAt(0), charCode: ch.charCodeAt(0), shiftKey: false };
+      return { key: ch, code: "Key" + upper, keyCode: upper.charCodeAt(0), charCode: ch.charCodeAt(0), shiftKey: false };
     }
-    if (ch >= 'A' && ch <= 'Z') {
-      return { key: ch, code: 'Key' + ch, keyCode: ch.charCodeAt(0), charCode: ch.charCodeAt(0), shiftKey: true };
+    if (ch >= "A" && ch <= "Z") {
+      return { key: ch, code: "Key" + ch, keyCode: ch.charCodeAt(0), charCode: ch.charCodeAt(0), shiftKey: true };
     }
-    if (ch >= '0' && ch <= '9') {
-      return { key: ch, code: 'Digit' + ch, keyCode: ch.charCodeAt(0), charCode: ch.charCodeAt(0), shiftKey: false };
+    if (ch >= "0" && ch <= "9") {
+      return { key: ch, code: "Digit" + ch, keyCode: ch.charCodeAt(0), charCode: ch.charCodeAt(0), shiftKey: false };
     }
-
     const punctuationMap = {
-      '!': { code: 'Digit1', keyCode: 49, shiftKey: true },
-      '@': { code: 'Digit2', keyCode: 50, shiftKey: true },
-      '#': { code: 'Digit3', keyCode: 51, shiftKey: true },
-      '$': { code: 'Digit4', keyCode: 52, shiftKey: true },
-      '%': { code: 'Digit5', keyCode: 53, shiftKey: true },
-      '^': { code: 'Digit6', keyCode: 54, shiftKey: true },
-      '&': { code: 'Digit7', keyCode: 55, shiftKey: true },
-      '*': { code: 'Digit8', keyCode: 56, shiftKey: true },
-      '(': { code: 'Digit9', keyCode: 57, shiftKey: true },
-      ')': { code: 'Digit0', keyCode: 48, shiftKey: true },
-      '-': { code: 'Minus', keyCode: 189, shiftKey: false },
-      '_': { code: 'Minus', keyCode: 189, shiftKey: true },
-      '=': { code: 'Equal', keyCode: 187, shiftKey: false },
-      '+': { code: 'Equal', keyCode: 187, shiftKey: true },
-      '[': { code: 'BracketLeft', keyCode: 219, shiftKey: false },
-      '{': { code: 'BracketLeft', keyCode: 219, shiftKey: true },
-      ']': { code: 'BracketRight', keyCode: 221, shiftKey: false },
-      '}': { code: 'BracketRight', keyCode: 221, shiftKey: true },
-      '\\': { code: 'Backslash', keyCode: 220, shiftKey: false },
-      '|': { code: 'Backslash', keyCode: 220, shiftKey: true },
-      ';': { code: 'Semicolon', keyCode: 186, shiftKey: false },
-      ':': { code: 'Semicolon', keyCode: 186, shiftKey: true },
-      "'": { code: 'Quote', keyCode: 222, shiftKey: false },
-      '"': { code: 'Quote', keyCode: 222, shiftKey: true },
-      ',': { code: 'Comma', keyCode: 188, shiftKey: false },
-      '<': { code: 'Comma', keyCode: 188, shiftKey: true },
-      '.': { code: 'Period', keyCode: 190, shiftKey: false },
-      '>': { code: 'Period', keyCode: 190, shiftKey: true },
-      '/': { code: 'Slash', keyCode: 191, shiftKey: false },
-      '?': { code: 'Slash', keyCode: 191, shiftKey: true },
-      '`': { code: 'Backquote', keyCode: 192, shiftKey: false },
-      '~': { code: 'Backquote', keyCode: 192, shiftKey: true }
+      "!": { code: "Digit1", keyCode: 49, shiftKey: true },
+      "@": { code: "Digit2", keyCode: 50, shiftKey: true },
+      "#": { code: "Digit3", keyCode: 51, shiftKey: true },
+      "$": { code: "Digit4", keyCode: 52, shiftKey: true },
+      "%": { code: "Digit5", keyCode: 53, shiftKey: true },
+      "^": { code: "Digit6", keyCode: 54, shiftKey: true },
+      "&": { code: "Digit7", keyCode: 55, shiftKey: true },
+      "*": { code: "Digit8", keyCode: 56, shiftKey: true },
+      "(": { code: "Digit9", keyCode: 57, shiftKey: true },
+      ")": { code: "Digit0", keyCode: 48, shiftKey: true },
+      "-": { code: "Minus", keyCode: 189, shiftKey: false },
+      "_": { code: "Minus", keyCode: 189, shiftKey: true },
+      "=": { code: "Equal", keyCode: 187, shiftKey: false },
+      "+": { code: "Equal", keyCode: 187, shiftKey: true },
+      "[": { code: "BracketLeft", keyCode: 219, shiftKey: false },
+      "{": { code: "BracketLeft", keyCode: 219, shiftKey: true },
+      "]": { code: "BracketRight", keyCode: 221, shiftKey: false },
+      "}": { code: "BracketRight", keyCode: 221, shiftKey: true },
+      "\\": { code: "Backslash", keyCode: 220, shiftKey: false },
+      "|": { code: "Backslash", keyCode: 220, shiftKey: true },
+      ";": { code: "Semicolon", keyCode: 186, shiftKey: false },
+      ":": { code: "Semicolon", keyCode: 186, shiftKey: true },
+      "'": { code: "Quote", keyCode: 222, shiftKey: false },
+      '"': { code: "Quote", keyCode: 222, shiftKey: true },
+      ",": { code: "Comma", keyCode: 188, shiftKey: false },
+      "<": { code: "Comma", keyCode: 188, shiftKey: true },
+      ".": { code: "Period", keyCode: 190, shiftKey: false },
+      ">": { code: "Period", keyCode: 190, shiftKey: true },
+      "/": { code: "Slash", keyCode: 191, shiftKey: false },
+      "?": { code: "Slash", keyCode: 191, shiftKey: true },
+      "`": { code: "Backquote", keyCode: 192, shiftKey: false },
+      "~": { code: "Backquote", keyCode: 192, shiftKey: true }
     };
-
     const mapped = punctuationMap[ch];
     if (mapped) {
       return {
@@ -378,16 +321,14 @@ class AtariWasmCore {
         shiftKey: mapped.shiftKey
       };
     }
-
     return {
       key: ch,
-      code: '',
+      code: "",
       keyCode: ch.charCodeAt(0),
       charCode: ch.charCodeAt(0),
       shiftKey: false
     };
   }
-
   _dispatchKey(type, spec) {
     const target = this.canvas || window;
     const evt = new KeyboardEvent(type, {
@@ -395,88 +336,63 @@ class AtariWasmCore {
       code: spec.code,
       keyCode: spec.keyCode,
       which: spec.keyCode,
-      charCode: type === 'keypress' ? spec.charCode : 0,
+      charCode: type === "keypress" ? spec.charCode : 0,
       shiftKey: !!spec.shiftKey,
       bubbles: true,
       cancelable: true
     });
     target.dispatchEvent(evt);
   }
-
   cancelPaste() {
     if (this._pasteState) {
       this._pasteState.cancelled = true;
     }
   }
-
   isPasting() {
     return !!(this._pasteState && !this._pasteState.cancelled);
   }
-
   async pasteText(rawText, onProgress, onDone) {
     if (!rawText || !this.canvas) return;
     this.cancelPaste();
     this.canvas.focus();
-
-    const normalized = rawText
-      .replace(/\r\n/g, '\n')
-      .replace(/\r/g, '\n')
-      .replace(/[„“”]/g, '"')
-      .replace(/[‚‘’]/g, "'")
-      .replace(/[–—]/g, '-')
-      .replace(/\t/g, ' ');
-
+    const normalized = rawText.replace(/\r\n/g, "\n").replace(/\r/g, "\n").replace(/[„“”]/g, '"').replace(/[‚‘’]/g, "'").replace(/[–—]/g, "-").replace(/\t/g, " ");
     const chars = Array.from(normalized);
     if (chars.length === 0) return;
-
     const state = { cancelled: false };
     this._pasteState = state;
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-
-    // Release any held Ctrl/Shift modifiers left over from Ctrl+V / Shift+Insert
     [
-      { key: 'Control', code: 'ControlLeft', keyCode: 17 },
-      { key: 'Control', code: 'ControlRight', keyCode: 17 },
-      { key: 'Shift', code: 'ShiftLeft', keyCode: 16 },
-      { key: 'Shift', code: 'ShiftRight', keyCode: 16 }
-    ].forEach((mod) => this._dispatchKey('keyup', mod));
+      { key: "Control", code: "ControlLeft", keyCode: 17 },
+      { key: "Control", code: "ControlRight", keyCode: 17 },
+      { key: "Shift", code: "ShiftLeft", keyCode: 16 },
+      { key: "Shift", code: "ShiftRight", keyCode: 16 }
+    ].forEach((mod) => this._dispatchKey("keyup", mod));
     await wait(120);
-
     for (let i = 0; i < chars.length; i++) {
       if (state.cancelled) {
         if (onDone) onDone(false);
         return;
       }
-
       const spec = this._mapCharToKeySpec(chars[i]);
-      this._dispatchKey('keydown', spec);
+      this._dispatchKey("keydown", spec);
       if (!spec.isEnter) {
         await wait(15);
-        this._dispatchKey('keypress', spec);
+        this._dispatchKey("keypress", spec);
       }
       await wait(40);
-      this._dispatchKey('keyup', spec);
-
-      // Wait ~2-3 PAL frames (55ms) so Atari OS registers key release, longer after Enter
+      this._dispatchKey("keyup", spec);
       await wait(spec.isEnter ? 180 : 55);
-
       if (onProgress && (i % 15 === 0 || i === chars.length - 1)) {
-        const percent = Math.round(((i + 1) / chars.length) * 100);
+        const percent = Math.round((i + 1) / chars.length * 100);
         onProgress(percent);
       }
     }
-
     if (this._pasteState === state) {
       this._pasteState = null;
     }
     if (onDone) onDone(true);
   }
 }
-
-// ============================================================================
-// 4. Minimal Offline QR Code SVG Generator (for TV Screen companion upload)
-// ============================================================================
-
 function generateSimpleQR(url) {
   return `
     <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100%;">
@@ -506,60 +422,42 @@ function generateSimpleQR(url) {
     </svg>
   `;
 }
-
-// ============================================================================
-// 5. Main Application Orchestration
-// ============================================================================
-
 class AtariApp {
   constructor() {
     this.storage = new AtariStorage();
     this.audio = new AtariAudioEngine();
-    this.canvas = document.getElementById('canvas');
+    this.canvas = document.getElementById("canvas");
     this.wasmCore = new AtariWasmCore(this.canvas);
-
-    // UI Elements
-    this.fpsCounter = document.getElementById('fpsCounter');
-    this.loadedMediaName = document.getElementById('loadedMediaName');
-    this.drive1Led = document.getElementById('drive1Led');
-    this.audioLed = document.getElementById('audioLed');
-    this.audioIcon = document.getElementById('audioIcon');
-    this.crtOverlay = document.getElementById('crtOverlay');
-    this.sidebarPanel = document.getElementById('sidebarPanel');
-    this.gameListContainer = document.getElementById('gameListContainer');
-    this.emptyStateMsg = document.getElementById('emptyStateMsg');
-    this.libraryCountBadge = document.getElementById('libraryCountBadge');
-    this.viewportMessage = document.getElementById('viewportMessage');
-    this.viewportSection = document.getElementById('viewportSection');
-    this.companionModal = document.getElementById('companionModal');
-    this.qrContainer = document.getElementById('qrContainer');
-    this.companionUrlDisplay = document.getElementById('companionUrlDisplay');
-    this.btnToggleInputMode = document.getElementById('btnToggleInputMode');
-
-    // FPS loop
+    this.fpsCounter = document.getElementById("fpsCounter");
+    this.loadedMediaName = document.getElementById("loadedMediaName");
+    this.drive1Led = document.getElementById("drive1Led");
+    this.audioLed = document.getElementById("audioLed");
+    this.audioIcon = document.getElementById("audioIcon");
+    this.crtOverlay = document.getElementById("crtOverlay");
+    this.sidebarPanel = document.getElementById("sidebarPanel");
+    this.gameListContainer = document.getElementById("gameListContainer");
+    this.emptyStateMsg = document.getElementById("emptyStateMsg");
+    this.libraryCountBadge = document.getElementById("libraryCountBadge");
+    this.viewportMessage = document.getElementById("viewportMessage");
+    this.viewportSection = document.getElementById("viewportSection");
+    this.companionModal = document.getElementById("companionModal");
+    this.qrContainer = document.getElementById("qrContainer");
+    this.companionUrlDisplay = document.getElementById("companionUrlDisplay");
+    this.btnToggleInputMode = document.getElementById("btnToggleInputMode");
     this.frameCount = 0;
     this.lastFpsUpdate = performance.now();
-
     this.init();
   }
-
   async init() {
-    console.log('Initializing AtariWebOS App with WebAssembly...');
-
-    // 1. Init Database
+    console.log("Initializing AtariWebOS App with WebAssembly...");
     await this.storage.init();
     await this.refreshGameList();
-
-    // 2. Setup Events
     this.setupKeyboardEvents();
     this.setupFileDropEvents();
     this.setupUIEvents();
     this.setupCompanionModal();
-
-    // 3. Start WebAssembly Core
     const urlParams = new URLSearchParams(window.location.search);
-    const mediaId = urlParams.get('boot');
-
+    const mediaId = urlParams.get("boot");
     if (mediaId) {
       const media = await this.storage.getMedia(mediaId);
       if (media) {
@@ -570,89 +468,73 @@ class AtariApp {
         await this.wasmCore.init();
       }
     } else {
-      // Default: Boot directly into Atari BASIC
       await this.wasmCore.init();
     }
-
-    // 4. Start FPS counter loop
     requestAnimationFrame((ts) => this.loop(ts));
   }
-
   loop(timestamp) {
     this.frameCount++;
     if (timestamp - this.lastFpsUpdate >= 500) {
-      const currentFps = Math.round((this.frameCount * 1000) / (timestamp - this.lastFpsUpdate));
+      const currentFps = Math.round(this.frameCount * 1e3 / (timestamp - this.lastFpsUpdate));
       if (this.fpsCounter) this.fpsCounter.textContent = Math.min(60, currentFps);
       this.frameCount = 0;
       this.lastFpsUpdate = timestamp;
     }
     requestAnimationFrame((ts) => this.loop(ts));
   }
-
   // ==========================================================================
   // Physical Keyboard Handling
   // ==========================================================================
   setupKeyboardEvents() {
-    // Prevent back navigation from destroying the WebAssembly canvas context
-    window.history.pushState(null, '', window.location.href);
-    window.addEventListener('popstate', () => {
-      window.history.pushState(null, '', window.location.href);
+    window.history.pushState(null, "", window.location.href);
+    window.addEventListener("popstate", () => {
+      window.history.pushState(null, "", window.location.href);
     });
-
-    // Hidden textarea sink to receive native browser paste cleanly without SDL2 blocking it
-    let pasteSink = document.getElementById('clipboardPasteSink');
+    let pasteSink = document.getElementById("clipboardPasteSink");
     if (!pasteSink) {
-      pasteSink = document.createElement('textarea');
-      pasteSink.id = 'clipboardPasteSink';
-      pasteSink.setAttribute('aria-hidden', 'true');
+      pasteSink = document.createElement("textarea");
+      pasteSink.id = "clipboardPasteSink";
+      pasteSink.setAttribute("aria-hidden", "true");
       pasteSink.tabIndex = -1;
-      pasteSink.style.cssText = 'position:fixed;left:0;top:0;width:4px;height:4px;opacity:0.01;border:0;padding:0;z-index:9999;';
+      pasteSink.style.cssText = "position:fixed;left:0;top:0;width:4px;height:4px;opacity:0.01;border:0;padding:0;z-index:9999;";
       document.body.appendChild(pasteSink);
     }
-
     const triggerPasteWithText = (text) => {
       if (!text) return;
       this.wasmCore.pasteText(
         text,
-        (percent) => this.flashNotice(t('paste_progress', { percent })),
+        (percent) => this.flashNotice(t("paste_progress", { percent })),
         (completed) => {
           if (completed) {
-            this.flashNotice(t('paste_done'));
+            this.flashNotice(t("paste_done"));
           }
         }
       );
     };
-
-    // Capture-phase keydown intercepts Ctrl+V / Cmd+V / Shift+Insert BEFORE Emscripten SDL2 calls preventDefault()
     let pasteHandledAt = 0;
-    window.addEventListener('keydown', (e) => {
+    window.addEventListener("keydown", (e) => {
       const active = document.activeElement;
-      const isUserInput = active && active !== pasteSink && ['INPUT', 'SELECT', 'TEXTAREA'].includes(active.tagName);
+      const isUserInput = active && active !== pasteSink && ["INPUT", "SELECT", "TEXTAREA"].includes(active.tagName);
       if (isUserInput) return;
-
-      const isCtrlV = (e.ctrlKey || e.metaKey) && !e.altKey && (e.code === 'KeyV' || (typeof e.key === 'string' && e.key.toLowerCase() === 'v'));
-      const isShiftIns = e.shiftKey && !e.ctrlKey && !e.altKey && (e.code === 'Insert' || e.key === 'Insert');
-
+      const isCtrlV = (e.ctrlKey || e.metaKey) && !e.altKey && (e.code === "KeyV" || typeof e.key === "string" && e.key.toLowerCase() === "v");
+      const isShiftIns = e.shiftKey && !e.ctrlKey && !e.altKey && (e.code === "Insert" || e.key === "Insert");
       if (isCtrlV || isShiftIns) {
-        // Stop SDL2 from seeing Ctrl+V / Shift+Insert and calling preventDefault(),
-        // while letting the browser execute native paste into pasteSink
         e.stopImmediatePropagation();
-        pasteSink.value = '';
+        pasteSink.value = "";
         pasteSink.focus({ preventScroll: true });
-
         const mark = Date.now();
         setTimeout(async () => {
-          // Fallback if browser didn't fire 'paste' event (e.g. Shift+Insert on some platforms)
           if (pasteHandledAt >= mark) return;
           let fallbackText = pasteSink.value;
-          pasteSink.value = '';
+          pasteSink.value = "";
           if (this.canvas && document.activeElement === pasteSink) {
             this.canvas.focus({ preventScroll: true });
           }
           if (!fallbackText && navigator.clipboard && navigator.clipboard.readText) {
             try {
               fallbackText = await navigator.clipboard.readText();
-            } catch (_) { }
+            } catch (_) {
+            }
           }
           if (fallbackText) {
             pasteHandledAt = Date.now();
@@ -661,126 +543,89 @@ class AtariApp {
         }, 40);
       }
     }, true);
-
-    window.addEventListener('keydown', (e) => {
-      // First interaction activates Web Audio Context if suspended
+    window.addEventListener("keydown", (e) => {
       this.audio.init();
-
-      // Cancel active clipboard paste on Escape
-      if (e.key === 'Escape' && this.wasmCore.isPasting()) {
+      if (e.key === "Escape" && this.wasmCore.isPasting()) {
         e.preventDefault();
         this.wasmCore.cancelPaste();
-        this.flashNotice(t('paste_cancelled'));
+        this.flashNotice(t("paste_cancelled"));
         return;
       }
-
       const active = document.activeElement;
-      const isInput = active && active !== pasteSink && ['INPUT', 'SELECT', 'TEXTAREA'].includes(active.tagName);
-
-      // Prevent destructive browser defaults (Backspace navigating back, Tab stealing focus, F1-F11 keys),
-      // but allow browser shortcuts like Ctrl+F5 (hard reload) and F12 (DevTools).
+      const isInput = active && active !== pasteSink && ["INPUT", "SELECT", "TEXTAREA"].includes(active.tagName);
       if (!isInput) {
-        const isFunctionKey = typeof e.key === 'string' && /^F([1-9]|10|11)$/.test(e.key) && !e.ctrlKey && !e.metaKey;
-        if (
-          e.key === 'Backspace' ||
-          e.code === 'Backspace' ||
-          e.keyCode === 8 ||
-          e.key === 'Tab' ||
-          e.code === 'Tab' ||
-          isFunctionKey
-        ) {
+        const isFunctionKey = typeof e.key === "string" && /^F([1-9]|10|11)$/.test(e.key) && !e.ctrlKey && !e.metaKey;
+        if (e.key === "Backspace" || e.code === "Backspace" || e.keyCode === 8 || e.key === "Tab" || e.code === "Tab" || isFunctionKey) {
           e.preventDefault();
         }
-
-        // Ensure canvas keeps focus for Atari Emscripten SDL input
         if (document.activeElement !== this.canvas && document.activeElement !== pasteSink) {
           this.canvas.focus();
         }
       }
-
-      // Quick Console buttons feedback
-      if (e.key === 'F2') {
-        this.flashNotice('OPTION pressed');
-      } else if (e.key === 'F3') {
-        this.flashNotice('SELECT pressed');
-      } else if (e.key === 'F4') {
-        this.flashNotice('START pressed');
-      } else if (e.key === 'F5') {
-        this.flashNotice('RESET pressed');
+      if (e.key === "F2") {
+        this.flashNotice("OPTION pressed");
+      } else if (e.key === "F3") {
+        this.flashNotice("SELECT pressed");
+      } else if (e.key === "F4") {
+        this.flashNotice("START pressed");
+      } else if (e.key === "F5") {
+        this.flashNotice("RESET pressed");
       }
     });
-
-    window.addEventListener('keyup', (e) => {
+    window.addEventListener("keyup", (e) => {
       const active = document.activeElement;
-      const isInput = active && active !== pasteSink && ['INPUT', 'SELECT', 'TEXTAREA'].includes(active.tagName);
+      const isInput = active && active !== pasteSink && ["INPUT", "SELECT", "TEXTAREA"].includes(active.tagName);
       if (!isInput) {
-        const isFunctionKey = typeof e.key === 'string' && /^F([1-9]|10|11)$/.test(e.key) && !e.ctrlKey && !e.metaKey;
-        if (
-          e.key === 'Backspace' ||
-          e.code === 'Backspace' ||
-          e.keyCode === 8 ||
-          e.key === 'Tab' ||
-          e.code === 'Tab' ||
-          isFunctionKey
-        ) {
+        const isFunctionKey = typeof e.key === "string" && /^F([1-9]|10|11)$/.test(e.key) && !e.ctrlKey && !e.metaKey;
+        if (e.key === "Backspace" || e.code === "Backspace" || e.keyCode === 8 || e.key === "Tab" || e.code === "Tab" || isFunctionKey) {
           e.preventDefault();
         }
       }
     });
-
-    // Clipboard Paste (Ctrl+V / Shift+Insert) into Atari BASIC / Emulator
-    window.addEventListener('paste', (e) => {
+    window.addEventListener("paste", (e) => {
       const active = document.activeElement;
-      const isUserInput = active && active !== pasteSink && ['INPUT', 'SELECT', 'TEXTAREA'].includes(active.tagName);
+      const isUserInput = active && active !== pasteSink && ["INPUT", "SELECT", "TEXTAREA"].includes(active.tagName);
       if (isUserInput) return;
-
-      const text = (e.clipboardData && e.clipboardData.getData('text/plain')) || pasteSink.value;
-      pasteSink.value = '';
+      const text = e.clipboardData && e.clipboardData.getData("text/plain") || pasteSink.value;
+      pasteSink.value = "";
       if (this.canvas) {
         this.canvas.focus({ preventScroll: true });
       }
       if (!text) return;
-
       e.preventDefault();
       pasteHandledAt = Date.now();
       triggerPasteWithText(text);
     }, true);
   }
-
   // ==========================================================================
   // File Drop & Upload Handlers
   // ==========================================================================
   setupFileDropEvents() {
-    const dropzone = document.getElementById('dropzoneBox');
-    const fileInput = document.getElementById('fileUploadInput');
-
-    dropzone.addEventListener('click', () => fileInput.click());
-
-    fileInput.addEventListener('change', async (e) => {
+    const dropzone = document.getElementById("dropzoneBox");
+    const fileInput = document.getElementById("fileUploadInput");
+    dropzone.addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", async (e) => {
       const files = Array.from(e.target.files);
       for (const file of files) {
         await this.handleIncomingFile(file);
       }
-      fileInput.value = '';
+      fileInput.value = "";
     });
-
-    ['dragenter', 'dragover'].forEach(name => {
+    ["dragenter", "dragover"].forEach((name) => {
       window.addEventListener(name, (e) => {
         e.preventDefault();
-        this.viewportSection.classList.add('drag-active');
-        this.viewportMessage.classList.add('show');
+        this.viewportSection.classList.add("drag-active");
+        this.viewportMessage.classList.add("show");
       });
     });
-
-    ['dragleave', 'drop'].forEach(name => {
+    ["dragleave", "drop"].forEach((name) => {
       window.addEventListener(name, (e) => {
         e.preventDefault();
-        this.viewportSection.classList.remove('drag-active');
-        this.viewportMessage.classList.remove('show');
+        this.viewportSection.classList.remove("drag-active");
+        this.viewportMessage.classList.remove("show");
       });
     });
-
-    window.addEventListener('drop', async (e) => {
+    window.addEventListener("drop", async (e) => {
       const files = Array.from(e.dataTransfer.files);
       if (files.length > 0) {
         let lastId = null;
@@ -793,7 +638,6 @@ class AtariApp {
       }
     });
   }
-
   async bootMediaById(id) {
     const media = await this.storage.getMedia(id);
     if (!media) return;
@@ -801,308 +645,266 @@ class AtariApp {
       this.loadedMediaName.textContent = media.name;
       this.loadedMediaName.title = media.name;
     }
-    this.flashNotice('▶ ' + media.name);
+    this.flashNotice("\u25B6 " + media.name);
     await this.wasmCore.init(media.name, media.data);
     if (this.canvas) this.canvas.focus();
   }
-
   async handleIncomingFile(file) {
     const arrayBuffer = await file.arrayBuffer();
     const id = await this.storage.saveMedia(file.name, arrayBuffer, file.size);
     await this.refreshGameList();
-    this.flashNotice(t('notice_saved') + file.name);
+    this.flashNotice(t("notice_saved") + file.name);
     return id;
   }
-
   // ==========================================================================
   // Library UI & Storage Rendering
   // ==========================================================================
   async refreshGameList() {
     const list = await this.storage.getAllMedia();
     const count = list.length;
-    let countWord = t('files_count_many');
-    if (count === 1) countWord = t('files_count_one');
-    else if (count >= 2 && count <= 4) countWord = t('files_count_few');
+    let countWord = t("files_count_many");
+    if (count === 1) countWord = t("files_count_one");
+    else if (count >= 2 && count <= 4) countWord = t("files_count_few");
     this.libraryCountBadge.textContent = `${count} ${countWord}`;
-
     if (list.length === 0) {
-      this.emptyStateMsg.style.display = 'block';
-      this.gameListContainer.innerHTML = '';
+      this.emptyStateMsg.style.display = "block";
+      this.gameListContainer.innerHTML = "";
       this.gameListContainer.appendChild(this.emptyStateMsg);
       return;
     }
-
-    this.emptyStateMsg.style.display = 'none';
-    this.gameListContainer.innerHTML = '';
-
-    list.forEach(item => {
-      const el = document.createElement('div');
-      el.className = 'game-item';
-
+    this.emptyStateMsg.style.display = "none";
+    this.gameListContainer.innerHTML = "";
+    list.forEach((item) => {
+      const el = document.createElement("div");
+      el.className = "game-item";
       const sizeKb = (item.size / 1024).toFixed(1);
       const dateStr = new Date(item.date).toLocaleDateString(getLanguage());
-
       el.innerHTML = `
         <div class="game-info">
           <div class="game-name" title="${item.name}">${item.name}</div>
           <div class="game-meta">
             <span class="game-badge">${item.ext.toUpperCase()}</span>
-            <span>${sizeKb} KB</span> • <span>${dateStr}</span>
+            <span>${sizeKb} KB</span> \u2022 <span>${dateStr}</span>
           </div>
         </div>
         <div class="game-actions">
-          <button class="btn btn-primary btn-sm btn-run" data-id="${item.id}" title="${t('action_run')}">${t('action_run')}</button>
-          <button class="btn btn-danger btn-sm btn-del" data-id="${item.id}" title="${t('action_delete')}">🗑</button>
+          <button class="btn btn-primary btn-sm btn-run" data-id="${item.id}" title="${t("action_run")}">${t("action_run")}</button>
+          <button class="btn btn-danger btn-sm btn-del" data-id="${item.id}" title="${t("action_delete")}">\u{1F5D1}</button>
         </div>
       `;
-
-      el.querySelector('.btn-run').addEventListener('click', async () => {
+      el.querySelector(".btn-run").addEventListener("click", async () => {
         await this.bootMediaById(item.id);
       });
-
-      el.querySelector('.btn-del').addEventListener('click', async () => {
-        if (confirm(t('delete_confirm', { name: item.name }))) {
+      el.querySelector(".btn-del").addEventListener("click", async () => {
+        if (confirm(t("delete_confirm", { name: item.name }))) {
           await this.storage.deleteMedia(item.id);
           await this.refreshGameList();
         }
       });
-
       this.gameListContainer.appendChild(el);
     });
   }
-
   // ==========================================================================
   // UI & TV Event Listeners
   // ==========================================================================
   setupUIEvents() {
-    // Audio Toggle (Mute / Unmute)
-    const btnToggleAudio = document.getElementById('btnToggleAudio');
+    const btnToggleAudio = document.getElementById("btnToggleAudio");
     if (btnToggleAudio) {
-      btnToggleAudio.addEventListener('click', () => {
+      btnToggleAudio.addEventListener("click", () => {
         this.audio.init();
         const isEnabled = this.audio.toggle();
         if (this.audioIcon) {
-          this.audioIcon.textContent = isEnabled ? '🔊' : '🔇';
+          this.audioIcon.textContent = isEnabled ? "\u{1F50A}" : "\u{1F507}";
         }
         if (this.audioLed) {
-          this.audioLed.className = isEnabled ? 'led led-green active' : 'led led-red active';
-          this.audioLed.title = isEnabled ? 'Zvuk zapnut' : 'Zvuk vypnut (MUTE)';
+          this.audioLed.className = isEnabled ? "led led-green active" : "led led-red active";
+          this.audioLed.title = isEnabled ? "Zvuk zapnut" : "Zvuk vypnut (MUTE)";
         }
-        this.flashNotice(isEnabled ? '🔊 Zvuk zapnut' : '🔇 Zvuk ztlumen (MUTE)');
+        this.flashNotice(isEnabled ? "\u{1F50A} Zvuk zapnut" : "\u{1F507} Zvuk ztlumen (MUTE)");
       });
     }
-
-    // CRT Scanlines Toggle
-    document.getElementById('btnToggleScanlines').addEventListener('click', () => {
-      this.crtOverlay.classList.toggle('disabled');
+    document.getElementById("btnToggleScanlines").addEventListener("click", () => {
+      this.crtOverlay.classList.toggle("disabled");
     });
-
-    // Fullscreen Toggle
-    document.getElementById('btnToggleFullscreen').addEventListener('click', () => {
+    document.getElementById("btnToggleFullscreen").addEventListener("click", () => {
       if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(err => console.warn(err));
+        document.documentElement.requestFullscreen().catch((err) => console.warn(err));
       } else {
         document.exitFullscreen();
       }
     });
-
-    // Sidebar Toggle
-    document.getElementById('btnToggleSidebar').addEventListener('click', () => {
-      this.sidebarPanel.classList.toggle('collapsed');
+    document.getElementById("btnToggleSidebar").addEventListener("click", () => {
+      this.sidebarPanel.classList.toggle("collapsed");
     });
-
-    // Sidebar Tabs
-    const tabs = document.querySelectorAll('.tab-btn');
-    tabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        tabs.forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-
-        tab.classList.add('active');
-        const targetId = tab.getAttribute('data-tab');
-        document.getElementById(targetId).classList.add('active');
+    const tabs = document.querySelectorAll(".tab-btn");
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        tabs.forEach((t2) => t2.classList.remove("active"));
+        document.querySelectorAll(".tab-content").forEach((c) => c.classList.remove("active"));
+        tab.classList.add("active");
+        const targetId = tab.getAttribute("data-tab");
+        document.getElementById(targetId).classList.add("active");
       });
     });
-
-    // Console buttons (Atari800 uses F2=Option, F3=Select, F4=Start, F5=Reset)
-    document.getElementById('btnConsoleOption').addEventListener('click', () => {
-      this.wasmCore.sendConsoleKey(113, 0, 'F2');
-      this.flashNotice('OPTION stisknuto');
+    document.getElementById("btnConsoleOption").addEventListener("click", () => {
+      this.wasmCore.sendConsoleKey(113, 0, "F2");
+      this.flashNotice("OPTION stisknuto");
     });
-    document.getElementById('btnConsoleSelect').addEventListener('click', () => {
-      this.wasmCore.sendConsoleKey(114, 0, 'F3');
-      this.flashNotice('SELECT stisknuto');
+    document.getElementById("btnConsoleSelect").addEventListener("click", () => {
+      this.wasmCore.sendConsoleKey(114, 0, "F3");
+      this.flashNotice("SELECT stisknuto");
     });
-    document.getElementById('btnConsoleStart').addEventListener('click', () => {
-      this.wasmCore.sendConsoleKey(115, 0, 'F4');
-      this.flashNotice('START stisknuto');
+    document.getElementById("btnConsoleStart").addEventListener("click", () => {
+      this.wasmCore.sendConsoleKey(115, 0, "F4");
+      this.flashNotice("START stisknuto");
     });
-    document.getElementById('btnConsoleReset').addEventListener('click', () => {
-      this.wasmCore.sendConsoleKey(116, 0, 'F5');
-      this.flashNotice('RESET (F5)');
+    document.getElementById("btnConsoleReset").addEventListener("click", () => {
+      this.wasmCore.sendConsoleKey(116, 0, "F5");
+      this.flashNotice("RESET (F5)");
     });
-    document.getElementById('btnColdReset').addEventListener('click', async () => {
+    document.getElementById("btnColdReset").addEventListener("click", async () => {
       if (this.loadedMediaName) {
-        this.loadedMediaName.textContent = 'Atari BASIC (ROM)';
-        this.loadedMediaName.title = 'Atari BASIC (ROM)';
+        this.loadedMediaName.textContent = "Atari BASIC (ROM)";
+        this.loadedMediaName.title = "Atari BASIC (ROM)";
       }
-      this.flashNotice('COLD RESTART (Atari BASIC)');
+      this.flashNotice("COLD RESTART (Atari BASIC)");
       await this.wasmCore.init();
       if (this.canvas) this.canvas.focus();
     });
-    const btnPasteBasic = document.getElementById('btnPasteBasic');
+    const btnPasteBasic = document.getElementById("btnPasteBasic");
     if (btnPasteBasic) {
-      btnPasteBasic.addEventListener('click', async () => {
-        let text = '';
+      btnPasteBasic.addEventListener("click", async () => {
+        let text = "";
         if (navigator.clipboard && navigator.clipboard.readText) {
           try {
             text = await navigator.clipboard.readText();
-          } catch (_) {}
+          } catch (_) {
+          }
         }
         if (!text) {
-          text = window.prompt(t('paste_prompt')) || '';
+          text = window.prompt(t("paste_prompt")) || "";
         }
         if (!text) return;
         this.wasmCore.pasteText(
           text,
-          (percent) => this.flashNotice(t('paste_progress', { percent })),
+          (percent) => this.flashNotice(t("paste_progress", { percent })),
           (completed) => {
             if (completed) {
-              this.flashNotice(t('paste_done'));
+              this.flashNotice(t("paste_done"));
             }
           }
         );
       });
     }
-
-    // Search Box
-    document.getElementById('librarySearchInput').addEventListener('input', (e) => {
+    document.getElementById("librarySearchInput").addEventListener("input", (e) => {
       const filter = e.target.value.toLowerCase();
-      const items = this.gameListContainer.querySelectorAll('.game-item');
-      items.forEach(item => {
-        const name = item.querySelector('.game-name').textContent.toLowerCase();
-        item.style.display = name.includes(filter) ? 'flex' : 'none';
+      const items = this.gameListContainer.querySelectorAll(".game-item");
+      items.forEach((item) => {
+        const name = item.querySelector(".game-name").textContent.toLowerCase();
+        item.style.display = name.includes(filter) ? "flex" : "none";
       });
     });
-
-    // Keyboard Input Profile Toggle (BASIC Mode vs WASD Game Mode)
     if (this.btnToggleInputMode) {
-      this.btnToggleInputMode.addEventListener('click', () => {
+      this.btnToggleInputMode.addEventListener("click", () => {
         this.wasdJoystickEnabled = !this.wasdJoystickEnabled;
         this.updateInputModeButton();
       });
     }
-
-    // Clear All Data
-    document.getElementById('btnClearAllData').addEventListener('click', async () => {
-      if (confirm(t('clear_all_confirm'))) {
+    document.getElementById("btnClearAllData").addEventListener("click", async () => {
+      if (confirm(t("clear_all_confirm"))) {
         await this.storage.clearAll();
         await this.refreshGameList();
-        this.flashNotice(t('notice_cleared'));
+        this.flashNotice(t("notice_cleared"));
       }
     });
-
-    // Pizza / Donate Modal (TV-friendly QR view)
-    const btnBuyPizza = document.getElementById('btnBuyPizza');
-    const pizzaModal = document.getElementById('pizzaModal');
-    const btnClosePizzaModal = document.getElementById('btnClosePizzaModal');
+    const btnBuyPizza = document.getElementById("btnBuyPizza");
+    const pizzaModal = document.getElementById("pizzaModal");
+    const btnClosePizzaModal = document.getElementById("btnClosePizzaModal");
     if (btnBuyPizza && pizzaModal) {
-      btnBuyPizza.addEventListener('click', () => {
-        pizzaModal.classList.add('open');
+      btnBuyPizza.addEventListener("click", () => {
+        pizzaModal.classList.add("open");
       });
       if (btnClosePizzaModal) {
-        btnClosePizzaModal.addEventListener('click', () => {
-          pizzaModal.classList.remove('open');
+        btnClosePizzaModal.addEventListener("click", () => {
+          pizzaModal.classList.remove("open");
         });
       }
-      pizzaModal.addEventListener('click', (e) => {
+      pizzaModal.addEventListener("click", (e) => {
         if (e.target === pizzaModal) {
-          pizzaModal.classList.remove('open');
+          pizzaModal.classList.remove("open");
         }
       });
     }
   }
-
   // ==========================================================================
   // Companion Web Upload Modal (Mobile / WiFi Remote via WebSocket Relay)
   // ==========================================================================
   setupCompanionModal() {
-    const btnOpen = document.getElementById('btnCompanionModal');
-    const btnClose = document.getElementById('btnCloseModal');
-    const btnUpload = document.getElementById('btnModalUploadLocal');
-
-    // Generate or restore 6-char pairing code for this TV session
-    let roomCode = '';
+    const btnOpen = document.getElementById("btnCompanionModal");
+    const btnClose = document.getElementById("btnCloseModal");
+    const btnUpload = document.getElementById("btnModalUploadLocal");
+    let roomCode = "";
     try {
-      roomCode = sessionStorage.getItem('atariWebOS_roomCode') || '';
-    } catch (_) {}
+      roomCode = sessionStorage.getItem("atariWebOS_roomCode") || "";
+    } catch (_) {
+    }
     if (!roomCode) {
-      const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
       for (let i = 0; i < 6; i++) {
         roomCode += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
       }
       try {
-        sessionStorage.setItem('atariWebOS_roomCode', roomCode);
-      } catch (_) {}
+        sessionStorage.setItem("atariWebOS_roomCode", roomCode);
+      } catch (_) {
+      }
     }
     this.roomCode = roomCode;
-
-    // Start background MQTT-over-WSS listener so TV receives files sent from mobile phone
     this.startCompanionRelayListener(roomCode);
-
     const updateUrlAndQR = async () => {
       let companionUrl = `https://macikm.github.io/Atari_for_LGTV/upload.html?code=${roomCode}`;
-
-      // If running on local HTTP dev server, use the PC's LAN IP address
-      if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
-        let host = window.location.hostname || 'localhost';
-        let port = window.location.port ? `:${window.location.port}` : '';
-        if (host === 'localhost' || host === '127.0.0.1') {
+      if (window.location.protocol === "http:" || window.location.protocol === "https:") {
+        let host = window.location.hostname || "localhost";
+        let port = window.location.port ? `:${window.location.port}` : "";
+        if (host === "localhost" || host === "127.0.0.1") {
           try {
-            const resp = await fetch('/api/lan-info');
+            const resp = await fetch("/api/lan-info");
             if (resp.ok) {
               const info = await resp.json();
               if (info && info.ip) {
                 host = info.ip;
               }
             }
-          } catch (_) {}
+          } catch (_) {
+          }
         }
-        if (host.indexOf('github.io') === -1) {
+        if (host.indexOf("github.io") === -1) {
           companionUrl = `${window.location.protocol}//${host}${port}/upload.html?code=${roomCode}`;
         }
       }
-
-      this.companionUrlDisplay.innerHTML = `<div style="font-size:0.85rem;color:#8892b0;margin-bottom:4px;">Párovací kód TV: <strong style="color:#2ecc71;letter-spacing:2px;font-size:1.15rem;">${roomCode}</strong></div><div style="word-break:break-all;font-size:0.85rem;">${companionUrl}</div>`;
+      this.companionUrlDisplay.innerHTML = `<div style="font-size:0.85rem;color:#8892b0;margin-bottom:4px;">P\xE1rovac\xED k\xF3d TV: <strong style="color:#2ecc71;letter-spacing:2px;font-size:1.15rem;">${roomCode}</strong></div><div style="word-break:break-all;font-size:0.85rem;">${companionUrl}</div>`;
       this.qrContainer.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(companionUrl)}" alt="QR Code" style="width:100%;height:100%;object-fit:contain;">`;
     };
-
-    btnOpen.addEventListener('click', () => {
+    btnOpen.addEventListener("click", () => {
       updateUrlAndQR();
-      this.companionModal.classList.add('open');
+      this.companionModal.classList.add("open");
     });
-
-    btnClose.addEventListener('click', () => {
-      this.companionModal.classList.remove('open');
+    btnClose.addEventListener("click", () => {
+      this.companionModal.classList.remove("open");
     });
-
-    this.companionModal.addEventListener('click', (e) => {
+    this.companionModal.addEventListener("click", (e) => {
       if (e.target === this.companionModal) {
-        this.companionModal.classList.remove('open');
+        this.companionModal.classList.remove("open");
       }
     });
-
-    btnUpload.addEventListener('click', () => {
-      this.companionModal.classList.remove('open');
-      document.getElementById('fileUploadInput').click();
+    btnUpload.addEventListener("click", () => {
+      this.companionModal.classList.remove("open");
+      document.getElementById("fileUploadInput").click();
     });
   }
-
   startCompanionRelayListener(roomCode) {
-    if (typeof WebSocket === 'undefined') return;
+    if (typeof WebSocket === "undefined") return;
     const self = this;
-    const topic = 'atariwebos/room/' + roomCode;
-
+    const topic = "atariwebos/room/" + roomCode;
     function encodeVarLen(len) {
       const out = [];
       do {
@@ -1113,52 +915,44 @@ class AtariApp {
       } while (len > 0);
       return out;
     }
-
     function strBytes(s) {
       return Array.from(new TextEncoder().encode(s));
     }
-
     function buildConnect(clientId) {
       const idb = strBytes(clientId);
       const body = [0, 4, 77, 81, 84, 84, 4, 2, 0, 60, 0, idb.length].concat(idb);
-      return new Uint8Array([0x10].concat(encodeVarLen(body.length), body));
+      return new Uint8Array([16].concat(encodeVarLen(body.length), body));
     }
-
     function buildSubscribe(subTopic) {
       const tb = strBytes(subTopic);
-      const body = [0, 1, (tb.length >> 8) & 255, tb.length & 255].concat(tb, [0]);
-      return new Uint8Array([0x82].concat(encodeVarLen(body.length), body));
+      const body = [0, 1, tb.length >> 8 & 255, tb.length & 255].concat(tb, [0]);
+      return new Uint8Array([130].concat(encodeVarLen(body.length), body));
     }
-
     const connect = () => {
       let ws;
       try {
-        ws = new WebSocket('wss://broker.emqx.io:8084/mqtt', 'mqtt');
-        ws.binaryType = 'arraybuffer';
+        ws = new WebSocket("wss://broker.emqx.io:8084/mqtt", "mqtt");
+        ws.binaryType = "arraybuffer";
       } catch (_) {
         return;
       }
-
       let rxBuf = new Uint8Array(0);
       let pingInterval = null;
-
       ws.onopen = () => {
-        const cid = 'atari_tv_' + roomCode + '_' + Math.random().toString(36).slice(2, 6);
+        const cid = "atari_tv_" + roomCode + "_" + Math.random().toString(36).slice(2, 6);
         ws.send(buildConnect(cid));
         pingInterval = setInterval(() => {
           if (ws.readyState === 1) {
-            ws.send(new Uint8Array([0xc0, 0x00]));
+            ws.send(new Uint8Array([192, 0]));
           }
-        }, 45000);
+        }, 45e3);
       };
-
       ws.onmessage = async (e) => {
         const incoming = new Uint8Array(e.data);
         const merged = new Uint8Array(rxBuf.length + incoming.length);
         merged.set(rxBuf, 0);
         merged.set(incoming, rxBuf.length);
         rxBuf = merged;
-
         while (rxBuf.length >= 2) {
           let mult = 1;
           let rem = 0;
@@ -1170,20 +964,15 @@ class AtariApp {
             rem += (b & 127) * mult;
             mult *= 128;
           } while (b & 128);
-
           if (rxBuf.length < idx + rem) return;
-
-          const pktType = rxBuf[0] & 0xf0;
+          const pktType = rxBuf[0] & 240;
           const pktBody = rxBuf.slice(idx, idx + rem);
           rxBuf = rxBuf.slice(idx + rem);
-
-          if (pktType === 0x20) {
-            // CONNACK -> Subscribe to room topic
+          if (pktType === 32) {
             ws.send(buildSubscribe(topic));
-          } else if (pktType === 0x30) {
-            // PUBLISH -> Incoming file from mobile phone
+          } else if (pktType === 48) {
             try {
-              const tLen = (pktBody[0] << 8) | pktBody[1];
+              const tLen = pktBody[0] << 8 | pktBody[1];
               const payloadBytes = pktBody.slice(2 + tLen);
               const jsonStr = new TextDecoder().decode(payloadBytes);
               const msg = JSON.parse(jsonStr);
@@ -1191,65 +980,58 @@ class AtariApp {
                 const fileBytes = base64ToUint8Array(msg.data);
                 const savedId = await self.storage.saveMedia(msg.name, fileBytes.buffer, msg.size || fileBytes.byteLength);
                 await self.refreshGameList();
-                self.flashNotice(t('notice_saved') + msg.name);
-                if (self.companionModal && self.companionModal.classList.contains('open')) {
-                  self.companionModal.classList.remove('open');
+                self.flashNotice(t("notice_saved") + msg.name);
+                if (self.companionModal && self.companionModal.classList.contains("open")) {
+                  self.companionModal.classList.remove("open");
                 }
                 if (savedId) {
                   await self.bootMediaById(savedId);
                 }
               }
             } catch (err) {
-              console.warn('Error processing incoming mobile upload:', err);
+              console.warn("Error processing incoming mobile upload:", err);
             }
           }
         }
       };
-
       ws.onclose = () => {
         if (pingInterval) clearInterval(pingInterval);
-        setTimeout(connect, 4000);
+        setTimeout(connect, 4e3);
       };
     };
-
     connect();
   }
-
   updateInputModeButton() {
     if (!this.btnToggleInputMode) return;
     if (this.wasdJoystickEnabled) {
-      this.btnToggleInputMode.innerHTML = `<span>🕹️</span> <span>${t('mode_wasd')}</span>`;
-      this.btnToggleInputMode.classList.add('btn-primary');
-      this.flashNotice(t('notice_wasd'));
+      this.btnToggleInputMode.innerHTML = `<span>\u{1F579}\uFE0F</span> <span>${t("mode_wasd")}</span>`;
+      this.btnToggleInputMode.classList.add("btn-primary");
+      this.flashNotice(t("notice_wasd"));
     } else {
-      this.btnToggleInputMode.innerHTML = `<span>⌨️</span> <span>${t('mode_basic')}</span>`;
-      this.btnToggleInputMode.classList.remove('btn-primary');
-      this.flashNotice(t('notice_basic'));
+      this.btnToggleInputMode.innerHTML = `<span>\u2328\uFE0F</span> <span>${t("mode_basic")}</span>`;
+      this.btnToggleInputMode.classList.remove("btn-primary");
+      this.flashNotice(t("notice_basic"));
     }
   }
-
   onLanguageChange() {
     this.refreshGameList();
     if (this.btnToggleInputMode) {
-      const modeKey = this.wasdJoystickEnabled ? 'mode_wasd' : 'mode_basic';
-      const icon = this.wasdJoystickEnabled ? '🕹️' : '⌨️';
+      const modeKey = this.wasdJoystickEnabled ? "mode_wasd" : "mode_basic";
+      const icon = this.wasdJoystickEnabled ? "\u{1F579}\uFE0F" : "\u2328\uFE0F";
       this.btnToggleInputMode.innerHTML = `<span>${icon}</span> <span>${t(modeKey)}</span>`;
     }
   }
-
   flashNotice(text) {
     this.viewportMessage.textContent = text;
-    this.viewportMessage.classList.add('show');
+    this.viewportMessage.classList.add("show");
     clearTimeout(this._noticeTimer);
     this._noticeTimer = setTimeout(() => {
-      this.viewportMessage.classList.remove('show');
+      this.viewportMessage.classList.remove("show");
     }, 2200);
   }
 }
-
-// Start application when DOM is ready
-if (document.readyState === 'loading') {
-  window.addEventListener('DOMContentLoaded', () => {
+if (document.readyState === "loading") {
+  window.addEventListener("DOMContentLoaded", () => {
     window.atariApp = new AtariApp();
   });
 } else {
