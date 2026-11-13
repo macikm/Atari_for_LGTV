@@ -1,3 +1,6 @@
+var __defProp = Object.defineProperty;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 var _a, _b, _c, _d, _e, _f, _g;
 var Module = typeof Module != "undefined" ? Module : {};
 var ENVIRONMENT_IS_WEB = !!globalThis.window;
@@ -230,8 +233,8 @@ async function createWasm() {
   return exports;
 }
 class ExitStatus {
-  name = "ExitStatus";
   constructor(status) {
+    __publicField(this, "name", "ExitStatus");
     this.message = `Program terminated with exit(${status})`;
     this.status = status;
   }
@@ -1091,13 +1094,15 @@ var FS = {
   filesystems: null,
   syncFSRequests: 0,
   ErrnoError: class {
-    name = "ErrnoError";
     constructor(errno) {
+      __publicField(this, "name", "ErrnoError");
       this.errno = errno;
     }
   },
   FSStream: class {
-    shared = {};
+    constructor() {
+      __publicField(this, "shared", {});
+    }
     get object() {
       return this.node;
     }
@@ -1127,12 +1132,12 @@ var FS = {
     }
   },
   FSNode: class {
-    node_ops = {};
-    stream_ops = {};
-    readMode = 292 | 73;
-    writeMode = 146;
-    mounted = null;
     constructor(parent, name, mode, rdev) {
+      __publicField(this, "node_ops", {});
+      __publicField(this, "stream_ops", {});
+      __publicField(this, "readMode", 292 | 73);
+      __publicField(this, "writeMode", 146);
+      __publicField(this, "mounted", null);
       if (!parent) {
         parent = this;
       }
@@ -2379,8 +2384,10 @@ var FS = {
   },
   createLazyFile(parent, name, url, canRead, canWrite) {
     class LazyUint8Array {
-      lengthKnown = false;
-      chunks = [];
+      constructor() {
+        __publicField(this, "lengthKnown", false);
+        __publicField(this, "chunks", []);
+      }
       get(idx) {
         if (idx > this.length - 1 || idx < 0) {
           return void 0;

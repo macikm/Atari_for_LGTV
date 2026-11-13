@@ -146,6 +146,16 @@ class AtariAudioEngine {
 // 3. Atari800 WebAssembly Integration Core
 // ============================================================================
 
+function base64ToUint8Array(base64) {
+  const binaryStr = window.atob(base64);
+  const len = binaryStr.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryStr.charCodeAt(i);
+  }
+  return bytes;
+}
+
 class AtariWasmCore {
   constructor(canvas) {
     this.canvas = canvas;
@@ -207,14 +217,23 @@ class AtariWasmCore {
       args.push('-basic');
     }
 
+    const embedded = window.ATARI_EMBEDDED_ASSETS || null;
+    const wasmBytes = embedded && embedded.wasm ? base64ToUint8Array(embedded.wasm) : null;
+
     window.Module = {
       canvas: document.getElementById('canvas'),
       arguments: args,
+      wasmBinary: wasmBytes,
       preRun: [function () {
-        // Preload genuine Atari ROMs into root MEMFS
+        // Load genuine Atari ROMs into root MEMFS (directly from embedded memory bundle if available)
         try {
-          window.Module.FS.createPreloadedFile('/', 'atarixl.rom', romsPrefix + 'atarixl.rom', true, false);
-          window.Module.FS.createPreloadedFile('/', 'ataribas.rom', romsPrefix + 'ataribas.rom', true, false);
+          if (embedded && embedded.xlRom && embedded.basRom) {
+            window.Module.FS.writeFile('/atarixl.rom', base64ToUint8Array(embedded.xlRom));
+            window.Module.FS.writeFile('/ataribas.rom', base64ToUint8Array(embedded.basRom));
+          } else {
+            window.Module.FS.createPreloadedFile('/', 'atarixl.rom', romsPrefix + 'atarixl.rom', true, false);
+            window.Module.FS.createPreloadedFile('/', 'ataribas.rom', romsPrefix + 'ataribas.rom', true, false);
+          }
         } catch (e) {
           console.warn('ROM preloading note:', e);
         }
@@ -251,7 +270,8 @@ class AtariWasmCore {
     if (!document.getElementById('atari800WasmScript')) {
       const script = document.createElement('script');
       script.id = 'atari800WasmScript';
-      script.src = wasmPrefix + 'atari800.js?v=3';
+      const cacheBust = window.location.protocol === 'file:' ? '' : '?v=7';
+      script.src = wasmPrefix + 'atari800.js' + cacheBust;
       document.body.appendChild(script);
     } else {
       window.location.reload();
