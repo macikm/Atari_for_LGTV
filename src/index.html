@@ -101,7 +101,7 @@
       <!-- Screen Viewport for Emulator -->
       <section class="viewport-section" id="viewportSection">
         <div class="screen-wrapper" id="screenWrapper">
-          <canvas id="canvas" tabindex="1" oncontextmenu="event.preventDefault()"></canvas>
+          <canvas id="canvas" width="800" height="600" tabindex="1" oncontextmenu="event.preventDefault()"></canvas>
           <div class="crt-overlay" id="crtOverlay"></div>
         </div>
 
@@ -321,8 +321,9 @@
   </div>
 
   <!-- Main Application Scripts (classic non-module scripts for file:// webOS compatibility) -->
-  <script src="wasm/assets_bundle.js?v=8"></script>
-  <script src="lang.js?v=8"></script>
-  <script src="app.js?v=8"></script>
+  <script src="wasm/assets_bundle.js"></script>
+  <script src="wasm/atari800.js"></script>
+  <script src="lang.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

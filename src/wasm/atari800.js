@@ -1,8 +1,16 @@
+if (typeof globalThis === "undefined") {
+  if (typeof window !== "undefined") window.globalThis = window;
+  else if (typeof self !== "undefined") self.globalThis = self;
+}
+globalThis.runAtari800Wasm = function(Module) {
+  if (globalThis._stopAtari800Instance) {
+    try { globalThis._stopAtari800Instance(); } catch (_) {}
+  }
 var __defProp = Object.defineProperty;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 var _a, _b, _c, _d, _e, _f, _g;
-var Module = typeof Module != "undefined" ? Module : {};
+Module = typeof Module != "undefined" ? Module : (globalThis.Module || {});
 var ENVIRONMENT_IS_WEB = !!globalThis.window;
 var ENVIRONMENT_IS_WORKER = !!globalThis.WorkerGlobalScope;
 var ENVIRONMENT_IS_NODE = ((_b = (_a = globalThis.process) == null ? void 0 : _a.versions) == null ? void 0 : _b.node) && ((_c = globalThis.process) == null ? void 0 : _c.type) != "renderer";
@@ -95,7 +103,7 @@ var err = console.error.bind(console);
 var wasmBinary;
 var ABORT = false;
 var EXITSTATUS;
-var isFileURI = (filename) => filename.startsWith("file://");
+var isFileURI = (filename) => filename.startsWith("file://") || (typeof location != "undefined" && location.protocol === "file:");
 class EmscriptenEH {
 }
 class EmscriptenSjLj extends EmscriptenEH {
@@ -3797,41 +3805,8 @@ var GL = {
   }
 };
 var _eglCreateContext = (display, config, hmm, contextAttribs) => {
-  if (display != 62e3) {
-    EGL.setErrorCode(12296);
-    return 0;
-  }
-  var glesContextVersion = 1;
-  for (; ; ) {
-    var param = HEAP32[contextAttribs >> 2];
-    if (param == 12440) {
-      glesContextVersion = HEAP32[contextAttribs + 4 >> 2];
-    } else if (param == 12344) {
-      break;
-    } else {
-      EGL.setErrorCode(12292);
-      return 0;
-    }
-    contextAttribs += 8;
-  }
-  if (glesContextVersion != 2) {
-    EGL.setErrorCode(12293);
-    return 0;
-  }
-  EGL.contextAttributes.majorVersion = glesContextVersion - 1;
-  EGL.contextAttributes.minorVersion = 0;
-  EGL.context = GL.createContext(Browser.getCanvas(), EGL.contextAttributes);
-  if (EGL.context != 0) {
-    EGL.setErrorCode(12288);
-    GL.makeContextCurrent(EGL.context);
-    Browser.useWebGL = true;
-    Browser.moduleContextCreatedCallbacks.forEach((callback) => callback());
-    GL.makeContextCurrent(null);
-    return 62004;
-  } else {
-    EGL.setErrorCode(12297);
-    return 0;
-  }
+  EGL.setErrorCode(12297);
+  return 0;
 };
 var _eglCreateWindowSurface = (display, config, win, attrib_list) => {
   if (display != 62e3) {
@@ -4473,6 +4448,7 @@ var getCanvasElementSize = (target) => {
 var _emscripten_set_canvas_element_size = (target, width, height) => {
   var canvas = findCanvasEventTarget(target);
   if (!canvas) return -4;
+  if (width <= 1 || height <= 1) return 0;
   canvas.width = width;
   canvas.height = height;
   return 0;
@@ -4673,8 +4649,19 @@ var _emscripten_get_element_css_size = (target, width, height) => {
   target = findEventTarget(target);
   if (!target) return -4;
   var rect = getBoundingClientRect(target);
-  HEAPF64[width >> 3] = rect.width;
-  HEAPF64[height >> 3] = rect.height;
+  var w = rect.width;
+  var h = rect.height;
+  if ((w < 336 || h < 240) && target.parentElement && target.parentElement.getBoundingClientRect) {
+    var pRect = target.parentElement.getBoundingClientRect();
+    if (pRect.width >= 336 && pRect.height >= 240) {
+      w = pRect.width;
+      h = pRect.height;
+    }
+  }
+  if (w < 336) w = 800;
+  if (h < 240) h = 600;
+  HEAPF64[width >> 3] = w;
+  HEAPF64[height >> 3] = h;
   return 0;
 };
 var fillGamepadEventData = (eventStruct, e) => {
@@ -4709,7 +4696,7 @@ var _emscripten_get_gamepad_status = (index, gamepadState) => {
   fillGamepadEventData(gamepadState, JSEvents.lastGamepadState[index]);
   return 0;
 };
-var _emscripten_get_num_gamepads = () => JSEvents.lastGamepadState.length;
+var _emscripten_get_num_gamepads = () => (JSEvents.lastGamepadState ? JSEvents.lastGamepadState.length : 0);
 var _emscripten_get_screen_size = (width, height) => {
   HEAP32[width >> 2] = screen.width;
   HEAP32[height >> 2] = screen.height;
@@ -6017,12 +6004,18 @@ var _emscripten_resize_heap = (requestedSize) => {
 };
 var _emscripten_sample_gamepad_data = () => {
   try {
-    if (navigator.getGamepads)
-      return (JSEvents.lastGamepadState = navigator.getGamepads()) ? 0 : -1;
+    if (navigator.getGamepads) {
+      var gp = navigator.getGamepads();
+      if (gp) {
+        JSEvents.lastGamepadState = gp;
+        return 0;
+      }
+    }
   } catch (e) {
-    navigator.getGamepads = null;
+    try { navigator.getGamepads = null; } catch (_) {}
   }
-  return -1;
+  JSEvents.lastGamepadState = [];
+  return 0;
 };
 var registerBeforeUnloadEventCallback = (target, userData, useCapture, callbackfunc, eventTypeId, eventTypeString) => {
   var beforeUnloadEventHandlerFunc = (e) => {
@@ -7800,5 +7793,19 @@ function run(args = programArgs) {
   }
 }
 var wasmExports;
+globalThis._stopAtari800Instance = function() {
+  ABORT = true;
+  try { MainLoop.pause(); } catch (_) {}
+  try { JSEvents.removeAllEventListeners(); } catch (_) {}
+  try {
+    var sdl = Module["SDL2"];
+    if (sdl) {
+      if (sdl.audio && sdl.audio.silenceTimer !== void 0) clearInterval(sdl.audio.silenceTimer);
+      if (sdl.audio && sdl.audio.scriptProcessorNode) sdl.audio.scriptProcessorNode.disconnect();
+      if (sdl.audioContext && sdl.audioContext.close) sdl.audioContext.close().catch(function() {});
+    }
+  } catch (_) {}
+};
 createWasm();
 run();
+};

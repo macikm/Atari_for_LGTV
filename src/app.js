@@ -198,6 +198,10 @@ class AtariWasmCore {
       args.unshift('-xl');
     }
 
+    const tvSystemSelect = document.getElementById('tvSystemSelect');
+    const tvSystem = tvSystemSelect ? tvSystemSelect.value : 'pal';
+    args.push(tvSystem === 'ntsc' ? '-ntsc' : '-pal');
+
     if (mediaName && mediaBytes) {
       this.activeDiskFilename = mediaName;
       this.activeDiskBytes = mediaBytes;
@@ -213,6 +217,8 @@ class AtariWasmCore {
         args.push('/' + vfsName);
       }
     } else {
+      this.activeDiskFilename = null;
+      this.activeDiskBytes = null;
       // Boot directly into Atari BASIC!
       args.push('-basic');
     }
@@ -224,6 +230,7 @@ class AtariWasmCore {
       canvas: document.getElementById('canvas'),
       arguments: args,
       wasmBinary: wasmBytes,
+      isAudioMuted: !!window.isAudioMuted,
       preRun: [function () {
         // Load genuine Atari ROMs into root MEMFS (directly from embedded memory bundle if available)
         try {
@@ -266,15 +273,18 @@ class AtariWasmCore {
       }
     };
 
-    // Load atari800.js script if not already injected
-    if (!document.getElementById('atari800WasmScript')) {
+    if (typeof window.runAtari800Wasm === 'function') {
+      window.runAtari800Wasm(window.Module);
+    } else if (!document.getElementById('atari800WasmScript')) {
       const script = document.createElement('script');
       script.id = 'atari800WasmScript';
-      const cacheBust = window.location.protocol === 'file:' ? '' : '?v=7';
-      script.src = wasmPrefix + 'atari800.js' + cacheBust;
+      script.src = wasmPrefix + 'atari800.js';
+      script.onload = function () {
+        if (typeof window.runAtari800Wasm === 'function') {
+          window.runAtari800Wasm(window.Module);
+        }
+      };
       document.body.appendChild(script);
-    } else {
-      window.location.reload();
     }
   }
 
@@ -773,13 +783,27 @@ class AtariApp {
     window.addEventListener('drop', async (e) => {
       const files = Array.from(e.dataTransfer.files);
       if (files.length > 0) {
+        let lastId = null;
         for (const file of files) {
-          const id = await this.handleIncomingFile(file);
-          // Reboot emulator with newly dropped disk
-          window.location.search = `?boot=${id}`;
+          lastId = await this.handleIncomingFile(file);
+        }
+        if (lastId !== null) {
+          await this.bootMediaById(lastId);
         }
       }
     });
+  }
+
+  async bootMediaById(id) {
+    const media = await this.storage.getMedia(id);
+    if (!media) return;
+    if (this.loadedMediaName) {
+      this.loadedMediaName.textContent = media.name;
+      this.loadedMediaName.title = media.name;
+    }
+    this.flashNotice('▶ ' + media.name);
+    await this.wasmCore.init(media.name, media.data);
+    if (this.canvas) this.canvas.focus();
   }
 
   async handleIncomingFile(file) {
@@ -832,8 +856,8 @@ class AtariApp {
         </div>
       `;
 
-      el.querySelector('.btn-run').addEventListener('click', () => {
-        window.location.search = `?boot=${item.id}`;
+      el.querySelector('.btn-run').addEventListener('click', async () => {
+        await this.bootMediaById(item.id);
       });
 
       el.querySelector('.btn-del').addEventListener('click', async () => {
@@ -917,8 +941,14 @@ class AtariApp {
       this.wasmCore.sendConsoleKey(116, 0, 'F5');
       this.flashNotice('RESET (F5)');
     });
-    document.getElementById('btnColdReset').addEventListener('click', () => {
-      window.location.search = '';
+    document.getElementById('btnColdReset').addEventListener('click', async () => {
+      if (this.loadedMediaName) {
+        this.loadedMediaName.textContent = 'Atari BASIC (ROM)';
+        this.loadedMediaName.title = 'Atari BASIC (ROM)';
+      }
+      this.flashNotice('COLD RESTART (Atari BASIC)');
+      await this.wasmCore.init();
+      if (this.canvas) this.canvas.focus();
     });
     const btnPasteBasic = document.getElementById('btnPasteBasic');
     if (btnPasteBasic) {
@@ -1159,9 +1189,15 @@ class AtariApp {
               const msg = JSON.parse(jsonStr);
               if (msg && msg.name && msg.data) {
                 const fileBytes = base64ToUint8Array(msg.data);
-                await self.storage.saveMedia(msg.name, fileBytes.buffer, msg.size || fileBytes.byteLength);
+                const savedId = await self.storage.saveMedia(msg.name, fileBytes.buffer, msg.size || fileBytes.byteLength);
                 await self.refreshGameList();
                 self.flashNotice(t('notice_saved') + msg.name);
+                if (self.companionModal && self.companionModal.classList.contains('open')) {
+                  self.companionModal.classList.remove('open');
+                }
+                if (savedId) {
+                  await self.bootMediaById(savedId);
+                }
               }
             } catch (err) {
               console.warn('Error processing incoming mobile upload:', err);
